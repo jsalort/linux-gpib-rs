@@ -4,7 +4,6 @@ use std::ffi::{CStr, CString};
 use std::fmt;
 use std::os::raw::{c_char, c_int, c_short, c_void};
 use std::path::Path;
-use std::pin::Pin;
 
 pub enum IbOption {
     PAD,
@@ -363,7 +362,7 @@ pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
 
 /// ibcmda -- write command bytes asynchronously (board)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcmda.html
-pub fn ibcmda(ud: c_int, commands: Pin<&mut [u8]>) -> Result<(), GpibError> {
+pub fn ibcmda(ud: c_int, commands: &mut [u8]) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibcmda(
             ud,
@@ -1012,7 +1011,7 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
 
 /// ibrda -- read data bytes asynchronously (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrda.html
-pub fn ibrda(ud: c_int, mut buffer: Pin<&mut [u8]>) -> Result<(), GpibError> {
+pub fn ibrda(ud: c_int, buffer: &mut [u8]) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibrda(
             ud,
@@ -1224,7 +1223,7 @@ pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
 
 /// ibwrta -- write data bytes asynchronously (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrta.html
-pub fn ibwrta(ud: c_int, data: Pin<&[u8]>) -> Result<(), GpibError> {
+pub fn ibwrta(ud: c_int, data: &[u8]) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
     });

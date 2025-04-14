@@ -2,7 +2,6 @@ use crate::error::{GpibError, IbError};
 use crate::status::IbStatus;
 use crate::traditional::{ibrda, ibwrta};
 use std::os::raw::c_int;
-use std::pin::Pin;
 
 pub async fn wait(ud: c_int, status_mask: IbStatus) -> Result<IbStatus, GpibError> {
     let status_mask = status_mask.as_ibsta();
@@ -22,7 +21,7 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
     let mut result: Vec<u8> = Vec::new();
     loop {
         let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-        ibrda(ud, Pin::new(&mut buffer))?;
+        ibrda(ud, &mut buffer)?;
         let status = wait(
             ud,
             IbStatus::default()
@@ -46,8 +45,7 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
 }
 
 pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
-    let data = Pin::new(data.as_bytes());
-    ibwrta(ud, data)?;
+    ibwrta(ud, data.as_bytes())?;
     let status = wait(
         ud,
         IbStatus::default()

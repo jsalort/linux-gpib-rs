@@ -1,7 +1,6 @@
 use crate::status::IbStatus;
-use std::os::raw::c_int;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 
 #[derive(Debug)]
 pub enum IbError {
@@ -51,7 +50,10 @@ impl fmt::Display for IbError {
                 write!(f, "EDVR  (A system call has failed. ibcntl = {ibcntl})")
             }
             IbError::ECIC => {
-                write!(f, "ECIC (Your interface board needs to be controller-in-charge, but is not)")
+                write!(
+                    f,
+                    "ECIC (Your interface board needs to be controller-in-charge, but is not)"
+                )
             }
             IbError::ENOL => {
                 write!(f, "ENOL (You have attempted to write data or command bytes, but there are no listeners currently addressed)")
@@ -66,7 +68,10 @@ impl fmt::Display for IbError {
                 )
             }
             IbError::ESAC => {
-                write!(f, "ESAC (The interface board needs to be system controller, but is not)")
+                write!(
+                    f,
+                    "ESAC (The interface board needs to be system controller, but is not)"
+                )
             }
             IbError::EABO => {
                 write!(f, "EABO (A read or write of data bytes has been aborted, possibly due to a timeout or reception of a device clear command)")
@@ -90,7 +95,10 @@ impl fmt::Display for IbError {
                 write!(f, "EFSO (file system error, ibcntl = {ibcntl})")
             }
             IbError::EBUS => {
-                write!(f, "EBUS (an attempt to write command bytes to the bus has timed out)")
+                write!(
+                    f,
+                    "EBUS (an attempt to write command bytes to the bus has timed out)"
+                )
             }
             IbError::ESTB => {
                 write!(f, "ESTB (one or more serial poll status bytes have been lost. This can occur due to too many status bytes accumulating, through automatic serial polling, without being read)")
@@ -109,9 +117,7 @@ impl IbError {
     /// Create IbError from iberr value
     pub fn from_iberr(iberr: i32) -> Result<IbError, GpibError> {
         match iberr {
-            0 => {
-                Ok(IbError::EDVR(unsafe { linux_gpib_sys::ibcntl }))
-            }
+            0 => Ok(IbError::EDVR(unsafe { linux_gpib_sys::ibcntl })),
             1 => Ok(IbError::ECIC),
             2 => Ok(IbError::ENOL),
             3 => Ok(IbError::EADR),
@@ -122,9 +128,7 @@ impl IbError {
             8 => Ok(IbError::EDMA),
             10 => Ok(IbError::EOIP),
             11 => Ok(IbError::ECAP),
-            12 => {
-                Ok(IbError::EFSO(unsafe { linux_gpib_sys::ibcntl }))
-            }
+            12 => Ok(IbError::EFSO(unsafe { linux_gpib_sys::ibcntl })),
             14 => Ok(IbError::EBUS),
             15 => Ok(IbError::ESTB),
             16 => Ok(IbError::ESRQ),
@@ -139,7 +143,7 @@ impl IbError {
     /// Create IbError from current Linux-GPIB global iberr variable
     pub fn current_error() -> Result<IbError, GpibError> {
         let status = IbStatus::current_status();
-        if status.ERR {
+        if status.err {
             IbError::from_iberr(unsafe { linux_gpib_sys::iberr })
         } else {
             Err(GpibError::ValueError(format!(

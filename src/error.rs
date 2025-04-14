@@ -1,0 +1,151 @@
+use crate::status::IbStatus;
+use std::os::raw::c_int;
+use std::fmt;
+use std::error::Error;
+
+#[derive(Debug)]
+pub enum IbError {
+    EDVR(i64), // In this case, we hold also ibcntl value
+    ECIC,
+    ENOL,
+    EADR,
+    EARG,
+    ESAC,
+    EABO,
+    ENEB,
+    EDMA,
+    EOIP,
+    ECAP,
+    EFSO(i64), // In this case, we hold also ibcntl value
+    EBUS,
+    ESTB,
+    ESRQ,
+    ETAB,
+}
+
+#[derive(Debug)]
+pub enum GpibError {
+    DriverError(IbStatus, IbError),
+    ValueError(String),
+}
+
+impl Error for GpibError {}
+
+impl fmt::Display for GpibError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            GpibError::DriverError(status, error) => {
+                write!(f, "GpibError({:?}, {:?})", status, error)
+            }
+            GpibError::ValueError(desc) => {
+                write!(f, "ValueError({})", desc)
+            }
+        }
+    }
+}
+
+impl fmt::Display for IbError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IbError::EDVR(ibcntl) => {
+                write!(f, "EDVR  (A system call has failed. ibcntl = {ibcntl})")
+            }
+            IbError::ECIC => {
+                write!(f, "ECIC (Your interface board needs to be controller-in-charge, but is not)")
+            }
+            IbError::ENOL => {
+                write!(f, "ENOL (You have attempted to write data or command bytes, but there are no listeners currently addressed)")
+            }
+            IbError::EADR => {
+                write!(f, "EADR (The interface board has failed to address itself properly before starting an io operation)")
+            }
+            IbError::EARG => {
+                write!(
+                    f,
+                    "EARG (One or more arguments to the function call were invalid)"
+                )
+            }
+            IbError::ESAC => {
+                write!(f, "ESAC (The interface board needs to be system controller, but is not)")
+            }
+            IbError::EABO => {
+                write!(f, "EABO (A read or write of data bytes has been aborted, possibly due to a timeout or reception of a device clear command)")
+            }
+            IbError::ENEB => {
+                write!(f, "ENEB (The GPIB interface board does not exist, its driver is not loaded, or it is not configured properly)")
+            }
+            IbError::EDMA => {
+                write!(
+                    f,
+                    "EDMA (Not used DMA error, included for compatibility purposes)"
+                )
+            }
+            IbError::EOIP => {
+                write!(f, "EOIP (Function call can not proceed due to an asynchronous IO operation in progress)")
+            }
+            IbError::ECAP => {
+                write!(f, "ECAP (incapable of executing function call, due the GPIB board lacking the capability, or the capability being disabled in software)")
+            }
+            IbError::EFSO(ibcntl) => {
+                write!(f, "EFSO (file system error, ibcntl = {ibcntl})")
+            }
+            IbError::EBUS => {
+                write!(f, "EBUS (an attempt to write command bytes to the bus has timed out)")
+            }
+            IbError::ESTB => {
+                write!(f, "ESTB (one or more serial poll status bytes have been lost. This can occur due to too many status bytes accumulating, through automatic serial polling, without being read)")
+            }
+            IbError::ESRQ => {
+                write!(f, "ESRQ (the serial poll request service line is stuck on. This can occur if a physical device on the bus requests service, but its GPIB address has not been opened by any process. Thus the automatic serial polling routines are unaware of the device's existence and will never serial poll it)")
+            }
+            IbError::ETAB => {
+                write!(f, "ETAB (this error can be returned by ibevent(), FindLstn(), or FindRQS(). See their descriptions for more information)")
+            }
+        }
+    }
+}
+
+impl IbError {
+    /// Create IbError from iberr value
+    pub fn from_iberr(iberr: i32) -> Result<IbError, GpibError> {
+        match iberr {
+            0 => {
+                Ok(IbError::EDVR(unsafe { linux_gpib_sys::ibcntl }))
+            }
+            1 => Ok(IbError::ECIC),
+            2 => Ok(IbError::ENOL),
+            3 => Ok(IbError::EADR),
+            4 => Ok(IbError::EARG),
+            5 => Ok(IbError::ESAC),
+            6 => Ok(IbError::EABO),
+            7 => Ok(IbError::ENEB),
+            8 => Ok(IbError::EDMA),
+            10 => Ok(IbError::EOIP),
+            11 => Ok(IbError::ECAP),
+            12 => {
+                Ok(IbError::EFSO(unsafe { linux_gpib_sys::ibcntl }))
+            }
+            14 => Ok(IbError::EBUS),
+            15 => Ok(IbError::ESTB),
+            16 => Ok(IbError::ESRQ),
+            20 => Ok(IbError::ETAB),
+            other => Err(GpibError::ValueError(format!(
+                "Unexpected iberr value = {}.",
+                other
+            ))),
+        }
+    }
+
+    /// Create IbError from current Linux-GPIB global iberr variable
+    pub fn current_error() -> Result<IbError, GpibError> {
+        let status = IbStatus::current_status();
+        if status.ERR {
+            IbError::from_iberr(unsafe { linux_gpib_sys::iberr })
+        } else {
+            Err(GpibError::ValueError(format!(
+                "Unable to get error because is not ERR (status = {:?})",
+                status
+            )))
+        }
+    }
+}

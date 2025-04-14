@@ -499,32 +499,32 @@ impl IbTimeout {
 
 #[derive(Copy, Clone)]
 pub struct PrimaryAddress {
-    pad: c_int
+    pad: c_int,
 }
 
 impl PrimaryAddress {
-
     pub fn new(pad: c_int) -> Result<PrimaryAddress, GpibError> {
         if pad >= 0 && pad <= 30 {
             Ok(PrimaryAddress { pad })
         } else {
-            Err(GpibError::ValueError(format!("Primary address must be between 0 and 30. Got: {}.", pad)))
+            Err(GpibError::ValueError(format!(
+                "Primary address must be between 0 and 30. Got: {}.",
+                pad
+            )))
         }
     }
 
     fn as_pad(&self) -> c_int {
         self.pad
     }
-
 }
 
 #[derive(Copy, Clone)]
 pub struct SecondaryAddress {
-    sad: c_int
+    sad: c_int,
 }
 
 impl SecondaryAddress {
-
     pub fn new(sad: c_int) -> Result<SecondaryAddress, GpibError> {
         let desc = "Secondary address must be between 0 and 30 (without the 0x60 prefix), or equivalently between 0x60 and 0x7e (with the 0x60 addition). sad = 0 disables secondary address.";
         let sad = if sad < 0 {
@@ -541,7 +541,7 @@ impl SecondaryAddress {
         } else {
             return Err(GpibError::ValueError(desc.to_owned()));
         };
-        Ok(  SecondaryAddress { sad } )
+        Ok(SecondaryAddress { sad })
     }
 
     fn as_sad(&self) -> c_int {
@@ -562,7 +562,6 @@ pub enum IbSendEOI {
 }
 
 impl IbSendEOI {
-
     fn as_eot(&self) -> c_int {
         match self {
             IbSendEOI::Disabled => 0,
@@ -643,7 +642,6 @@ impl IbEosMode {
 }
 
 impl Default for IbEosMode {
-
     fn default() -> IbEosMode {
         IbEosMode {
             reos: true,
@@ -926,9 +924,24 @@ pub fn ibloc(ud: c_int) -> Result<(), GpibError> {
     }
 }
 
+pub enum IbOnline {
+    Close,
+    Reset(c_int),
+}
+
+impl IbOnline {
+    fn as_online(&self) -> c_int {
+        match self {
+            IbOnline::Close => 0,
+            IbOnline::Reset(val) => *val,
+        }
+    }
+}
+
 /// ibonl -- close or reinitialize descriptor (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibonl.html
-pub fn ibonl(ud: c_int, online: c_int) -> Result<(), GpibError> {
+pub fn ibonl(ud: c_int, online: IbOnline) -> Result<(), GpibError> {
+    let online = online.as_online();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibonl(ud, online) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
@@ -940,7 +953,8 @@ pub fn ibonl(ud: c_int, online: c_int) -> Result<(), GpibError> {
 /// ibpad -- set primary GPIB address (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpad.html
 pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address.as_pad()) });
+    let status =
+        IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address.as_pad()) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
@@ -974,7 +988,11 @@ pub fn ibppc(ud: c_int, configuration: c_int) -> Result<(), GpibError> {
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrd.html
 pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibrd(ud, buffer.as_mut_ptr() as *mut c_void, buffer.len().try_into()?)
+        linux_gpib_sys::ibrd(
+            ud,
+            buffer.as_mut_ptr() as *mut c_void,
+            buffer.len().try_into()?,
+        )
     });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
@@ -983,7 +1001,8 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
         if bytes_read > buffer.len().try_into()? {
             Err(GpibError::ValueError(format!(
                 "bytes_read ({}) > buffer.len() ({})",
-                bytes_read, buffer.len(),
+                bytes_read,
+                buffer.len(),
             )))
         } else {
             Ok(bytes_read.try_into()?)
@@ -995,7 +1014,11 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrda.html
 pub fn ibrda(ud: c_int, mut buffer: Pin<&mut [u8]>) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibrda(ud, buffer.as_mut_ptr() as *mut c_void, buffer.len().try_into()?)
+        linux_gpib_sys::ibrda(
+            ud,
+            buffer.as_mut_ptr() as *mut c_void,
+            buffer.len().try_into()?,
+        )
     });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
@@ -1088,7 +1111,8 @@ pub fn ibrsv2(
 /// ibsad -- set secondary GPIB address (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsad.html
 pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address.as_sad()) });
+    let status =
+        IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address.as_sad()) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {

@@ -41,7 +41,8 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
             break;
         }
     }
-    Ok(String::from_utf8(result)?)
+    let answer = String::from_utf8(result)?;
+    Ok(answer)
 }
 
 pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {

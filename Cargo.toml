@@ -1,0 +1,11 @@
+[package]
+name = "linux-gpib-rs"
+version = "0.1.0"
+authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
+edition = "2024"
+
+[dependencies]
+linux-gpib-sys = { path = "./linux-gpib-sys" }
+
+[lib]
+crate-type = ["lib", "cdylib"]

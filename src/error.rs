@@ -4,6 +4,9 @@ use std::ffi::NulError;
 use std::fmt;
 use std::num::TryFromIntError;
 use std::str::Utf8Error;
+use std::string::FromUtf8Error;
+#[cfg(feature = "async-tokio")]
+use tokio::task::JoinError;
 
 pub enum IbError {
     EDVR(i64), // In this case, we hold also ibcntl value
@@ -26,7 +29,10 @@ pub enum IbError {
 
 pub enum GpibError {
     DriverError(IbStatus, IbError),
+    Timeout,
     ValueError(String),
+    #[cfg(feature = "async-tokio")]
+    TokioError(JoinError),
 }
 
 impl Error for GpibError {}
@@ -37,8 +43,15 @@ impl fmt::Display for GpibError {
             GpibError::DriverError(status, error) => {
                 write!(f, "GpibError({}, {})", status, error)
             }
+            GpibError::Timeout => {
+                write!(f, "Timeout")
+            }
             GpibError::ValueError(desc) => {
                 write!(f, "ValueError({})", desc)
+            }
+            #[cfg(feature = "async-tokio")]
+            GpibError::TokioError(e) => {
+                write!(f, "Tokio Error ({})", e)
             }
         }
     }
@@ -50,8 +63,15 @@ impl fmt::Debug for GpibError {
             GpibError::DriverError(status, error) => {
                 write!(f, "GpibError({:?}, {:?})", status, error)
             }
+            GpibError::Timeout => {
+                write!(f, "Timeout")
+            }
             GpibError::ValueError(desc) => {
                 write!(f, "ValueError({})", desc)
+            }
+            #[cfg(feature = "async-tokio")]
+            GpibError::TokioError(e) => {
+                write!(f, "Tokio Error ({:?})", e)
             }
         }
     }
@@ -235,8 +255,21 @@ impl From<TryFromIntError> for GpibError {
     }
 }
 
+impl From<FromUtf8Error> for GpibError {
+    fn from(e: FromUtf8Error) -> GpibError {
+        GpibError::ValueError(format!("{:?}", e,))
+    }
+}
+
 impl From<Utf8Error> for GpibError {
     fn from(e: Utf8Error) -> GpibError {
         GpibError::ValueError(format!("{:?}", e,))
+    }
+}
+
+#[cfg(feature = "async-tokio")]
+impl From<JoinError> for GpibError {
+    fn from(e: JoinError) -> GpibError {
+        GpibError::TokioError(e)
     }
 }

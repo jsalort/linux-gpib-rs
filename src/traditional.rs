@@ -944,81 +944,81 @@ pub fn ibstop(ud: c_int) -> Result<(), GpibError> {
 }
 
 pub enum IbTimeout {
-    t_none,
-    t_10us,
-    t_30us,
-    t_100us,
-    t_300us,
-    t_1ms,
-    t_3ms,
-    t_10ms,
-    t_30ms,
-    t_100ms,
-    t_300ms,
-    t_1s,
-    t_3s,
-    t_10s,
-    t_30s,
-    t_100s,
-    t_300s,
-    t_1000s,
+    TNone,
+    T10us,
+    T30us,
+    T100us,
+    T300us,
+    T1ms,
+    T3ms,
+    T10ms,
+    T30ms,
+    T100ms,
+    T300ms,
+    T1s,
+    T3s,
+    T10s,
+    T30s,
+    T100s,
+    T300s,
+    T1000s,
 }
 
 impl fmt::Display for IbTimeout {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            IbTimeout::t_none => {
+            IbTimeout::TNone => {
                 write!(f, "Never timeout")
             }
-            IbTimeout::t_10us => {
+            IbTimeout::T10us => {
                 write!(f, "10 microseconds")
             }
-            IbTimeout::t_30us => {
+            IbTimeout::T30us => {
                 write!(f, "30 microseconds")
             }
-            IbTimeout::t_100us => {
+            IbTimeout::T100us => {
                 write!(f, "100 microseconds")
             }
-            IbTimeout::t_300us => {
+            IbTimeout::T300us => {
                 write!(f, "300 microseconds")
             }
-            IbTimeout::t_1ms => {
+            IbTimeout::T1ms => {
                 write!(f, "1 millisecond")
             }
-            IbTimeout::t_3ms => {
+            IbTimeout::T3ms => {
                 write!(f, "3 milliseconds")
             }
-            IbTimeout::t_10ms => {
+            IbTimeout::T10ms => {
                 write!(f, "10 milliseconds")
             }
-            IbTimeout::t_30ms => {
+            IbTimeout::T30ms => {
                 write!(f, "30 milliseconds")
             }
-            IbTimeout::t_100ms => {
+            IbTimeout::T100ms => {
                 write!(f, "100 milliseconds")
             }
-            IbTimeout::t_300ms => {
+            IbTimeout::T300ms => {
                 write!(f, "300 milliseconds")
             }
-            IbTimeout::t_1s => {
+            IbTimeout::T1s => {
                 write!(f, "1 second")
             }
-            IbTimeout::t_3s => {
+            IbTimeout::T3s => {
                 write!(f, "3 seconds")
             }
-            IbTimeout::t_10s => {
+            IbTimeout::T10s => {
                 write!(f, "10 seconds")
             }
-            IbTimeout::t_30s => {
+            IbTimeout::T30s => {
                 write!(f, "30 seconds")
             }
-            IbTimeout::t_100s => {
+            IbTimeout::T100s => {
                 write!(f, "100 seconds")
             }
-            IbTimeout::t_300s => {
+            IbTimeout::T300s => {
                 write!(f, "300 seconds")
             }
-            IbTimeout::t_1000s => {
+            IbTimeout::T1000s => {
                 write!(f, "1000 seconds")
             }
         }
@@ -1028,24 +1028,24 @@ impl fmt::Display for IbTimeout {
 impl IbTimeout {
     fn as_timeout(&self) -> c_int {
         match self {
-            IbTimeout::t_none => 0,
-            IbTimeout::t_10us => 1,
-            IbTimeout::t_30us => 2,
-            IbTimeout::t_100us => 3,
-            IbTimeout::t_300us => 4,
-            IbTimeout::t_1ms => 5,
-            IbTimeout::t_3ms => 6,
-            IbTimeout::t_10ms => 7,
-            IbTimeout::t_30ms => 8,
-            IbTimeout::t_100ms => 9,
-            IbTimeout::t_300ms => 10,
-            IbTimeout::t_1s => 11,
-            IbTimeout::t_3s => 12,
-            IbTimeout::t_10s => 13,
-            IbTimeout::t_30s => 14,
-            IbTimeout::t_100s => 15,
-            IbTimeout::t_300s => 16,
-            IbTimeout::t_1000s => 17,
+            IbTimeout::TNone => 0,
+            IbTimeout::T10us => 1,
+            IbTimeout::T30us => 2,
+            IbTimeout::T100us => 3,
+            IbTimeout::T300us => 4,
+            IbTimeout::T1ms => 5,
+            IbTimeout::T3ms => 6,
+            IbTimeout::T10ms => 7,
+            IbTimeout::T30ms => 8,
+            IbTimeout::T100ms => 9,
+            IbTimeout::T300ms => 10,
+            IbTimeout::T1s => 11,
+            IbTimeout::T3s => 12,
+            IbTimeout::T10s => 13,
+            IbTimeout::T30s => 14,
+            IbTimeout::T100s => 15,
+            IbTimeout::T300s => 16,
+            IbTimeout::T1000s => 17,
         }
     }
 }
@@ -1079,4 +1079,57 @@ pub fn ibvers() -> Result<String, GpibError> {
     let mut buffer_ptr: *mut c_char = std::ptr::null_mut();
     unsafe { linux_gpib_sys::ibvers(&mut buffer_ptr as *mut *mut c_char) }
     Ok(unsafe { CStr::from_ptr(buffer_ptr) }.to_str()?.to_owned())
+}
+
+/// ibwait -- wait for event (board or device)
+/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwait.html
+pub fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<(), GpibError> {
+    let status_mask = status_mask.as_ibsta();
+    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibwait(ud, status_mask) });
+    if status.err {
+        Err(GpibError::DriverError(status, IbError::current_error()?))
+    } else {
+        Ok(())
+    }
+}
+
+/// ibwrt -- write data bytes (board or device)
+/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrt.html
+pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
+    let status = IbStatus::from_ibsta(unsafe {
+        linux_gpib_sys::ibwrt(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
+    });
+    if status.err {
+        Err(GpibError::DriverError(status, IbError::current_error()?))
+    } else {
+        Ok(unsafe { linux_gpib_sys::ibcntl }.try_into()?)
+    }
+}
+
+/// ibwrta -- write data bytes asynchronously (board or device)
+/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrta.html
+pub fn ibwrta(ud: c_int, data: Pin<Box<&[u8]>>) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe {
+        linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
+    });
+    if status.err {
+        Err(GpibError::DriverError(status, IbError::current_error()?))
+    } else {
+        Ok(())
+    }
+}
+
+/// ibwrtf -- write data bytes from file (board or device)
+/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrtf.html
+pub fn ibwrtf(ud: c_int, file_path: &Path) -> Result<usize, GpibError> {
+    let file_path = CString::new(file_path.to_str().ok_or(GpibError::ValueError(format!(
+        "Unable to convert path '{:?}' to string",
+        file_path
+    )))?)?;
+    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibwrtf(ud, file_path.as_ptr()) });
+    if status.err {
+        Err(GpibError::DriverError(status, IbError::current_error()?))
+    } else {
+        Ok(unsafe { linux_gpib_sys::ibcntl }.try_into()?)
+    }
 }

@@ -7,6 +7,12 @@ pub use status::IbStatus;
 pub use traditional::{
     ibask, ibbna, ibcac, ibclr, ibcmd, ibcmda, ibconfig, ibdev, ibeos, ibeot, ibevent, ibfind,
     ibgts, ibist, iblines, ibln, ibloc, ibonl, ibpad, ibpct, ibppc, ibrda, ibrdf, ibrpp, ibrsc,
-    ibrsp, ibrsv, ibrsv2, ibsad, ibsic, ibspb, ibsre, ibstop, ibtmo, ibtrg, idrd, EosMode, IbEvent,
-    IbLineStatus, IbOption, IbTimeout,
+    ibrsp, ibrsv, ibrsv2, ibsad, ibsic, ibspb, ibsre, ibstop, ibtmo, ibtrg, ibvers, ibwait, ibwrt,
+    ibwrta, ibwrtf, idrd, EosMode, IbEvent, IbLineStatus, IbOption, IbTimeout,
 };
+
+#[cfg(feature = "async-tokio")]
+mod asynchronous;
+
+#[cfg(feature = "async-tokio")]
+pub use asynchronous::{read, wait, write};

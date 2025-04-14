@@ -9,7 +9,6 @@ use linux_gpib_sys::{
 use std::default::Default;
 use std::fmt;
 
-#[derive(Debug)]
 pub struct IbStatus {
     pub dcas: bool,
     pub dtas: bool,
@@ -193,7 +192,7 @@ impl IbStatus {
     }
 }
 
-impl fmt::Display for IbStatus {
+impl fmt::Debug for IbStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut description = String::new();
         if self.dcas {
@@ -246,7 +245,70 @@ impl fmt::Display for IbStatus {
         if self.err {
             description.push_str("ERR (last function call failed)");
         }
-        write!(f, "IbStatus({description})")
+        if description.len() > 0 {
+            write!(f, "IbStatus({description})")
+        } else {
+            write!(f, "IbStatus(No flag set)")
+        }
+    }
+}
+
+impl fmt::Display for IbStatus {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        let mut description = String::new();
+        if self.dcas {
+            description.push_str("DCAS ");
+        }
+        if self.dtas {
+            description.push_str("DTAS ");
+        }
+        if self.lacs {
+            description.push_str("LACS ");
+        }
+        if self.tacs {
+            description.push_str("TACS ");
+        }
+        if self.atn {
+            description.push_str("ATN ");
+        }
+        if self.cic {
+            description.push_str("CIC ");
+        }
+        if self.rem {
+            description.push_str("REM ");
+        }
+        if self.lok {
+            description.push_str("LOK ");
+        }
+        if self.cmpl {
+            description.push_str("CMPL ");
+        }
+        if self.event {
+            description.push_str("EVENT ");
+        }
+        if self.spoll {
+            description.push_str("SPOLL ");
+        }
+        if self.rqs {
+            description.push_str("RQS ");
+        }
+        if self.srqi {
+            description.push_str("SRQI ");
+        }
+        if self.end {
+            description.push_str("END ");
+        }
+        if self.timo {
+            description.push_str("TIMO ");
+        }
+        if self.err {
+            description.push_str("ERR");
+        }
+        if description.len() > 0 {
+            write!(f, "IbStatus({description})")
+        } else {
+            write!(f, "IbStatus(No flag set)")
+        }
     }
 }
 

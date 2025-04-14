@@ -1,8 +1,10 @@
 use crate::status::IbStatus;
 use std::error::Error;
+use std::ffi::NulError;
 use std::fmt;
+use std::num::TryFromIntError;
+use std::str::Utf8Error;
 
-#[derive(Debug)]
 pub enum IbError {
     EDVR(i64), // In this case, we hold also ibcntl value
     ECIC,
@@ -22,7 +24,6 @@ pub enum IbError {
     ETAB,
 }
 
-#[derive(Debug)]
 pub enum GpibError {
     DriverError(IbStatus, IbError),
     ValueError(String),
@@ -31,6 +32,19 @@ pub enum GpibError {
 impl Error for GpibError {}
 
 impl fmt::Display for GpibError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            GpibError::DriverError(status, error) => {
+                write!(f, "GpibError({}, {})", status, error)
+            }
+            GpibError::ValueError(desc) => {
+                write!(f, "ValueError({})", desc)
+            }
+        }
+    }
+}
+
+impl fmt::Debug for GpibError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             GpibError::DriverError(status, error) => {
@@ -44,6 +58,61 @@ impl fmt::Display for GpibError {
 }
 
 impl fmt::Display for IbError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IbError::EDVR(ibcntl) => {
+                write!(f, "EDVR  (ibcntl = {ibcntl})")
+            }
+            IbError::ECIC => {
+                write!(f, "ECIC")
+            }
+            IbError::ENOL => {
+                write!(f, "ENOL")
+            }
+            IbError::EADR => {
+                write!(f, "EADR")
+            }
+            IbError::EARG => {
+                write!(f, "EARG")
+            }
+            IbError::ESAC => {
+                write!(f, "ESAC")
+            }
+            IbError::EABO => {
+                write!(f, "EABO")
+            }
+            IbError::ENEB => {
+                write!(f, "ENEB")
+            }
+            IbError::EDMA => {
+                write!(f, "EDMA")
+            }
+            IbError::EOIP => {
+                write!(f, "EOIP")
+            }
+            IbError::ECAP => {
+                write!(f, "ECAP")
+            }
+            IbError::EFSO(ibcntl) => {
+                write!(f, "EFSO (ibcntl = {ibcntl})")
+            }
+            IbError::EBUS => {
+                write!(f, "EBUS")
+            }
+            IbError::ESTB => {
+                write!(f, "ESTB")
+            }
+            IbError::ESRQ => {
+                write!(f, "ESRQ")
+            }
+            IbError::ETAB => {
+                write!(f, "ETAB")
+            }
+        }
+    }
+}
+
+impl fmt::Debug for IbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             IbError::EDVR(ibcntl) => {
@@ -151,5 +220,23 @@ impl IbError {
                 status
             )))
         }
+    }
+}
+
+impl From<NulError> for GpibError {
+    fn from(e: NulError) -> GpibError {
+        GpibError::ValueError(format!("{:?}", e))
+    }
+}
+
+impl From<TryFromIntError> for GpibError {
+    fn from(e: TryFromIntError) -> GpibError {
+        GpibError::ValueError(format!("{:?}", e,))
+    }
+}
+
+impl From<Utf8Error> for GpibError {
+    fn from(e: Utf8Error) -> GpibError {
+        GpibError::ValueError(format!("{:?}", e,))
     }
 }

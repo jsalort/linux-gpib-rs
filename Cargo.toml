@@ -4,8 +4,13 @@ version = "0.1.0"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
 
+[features]
+default = ["async-tokio"]
+async-tokio = ["dep:tokio"]
+
 [dependencies]
 linux-gpib-sys = { path = "./linux-gpib-sys" }
+tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]

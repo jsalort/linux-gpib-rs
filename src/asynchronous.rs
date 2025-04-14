@@ -36,7 +36,6 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
         }
         let n_read: usize = unsafe { linux_gpib_sys::ibcntl }.try_into()?;
         if n_read > 0 {
-            println!("{} bytes read. Status = {:?}.", n_read, status);
             result.extend(buffer[0..n_read].to_vec());
         }
         if status.end || n_read < BUFFER_SIZE || n_read == 0 {
@@ -48,9 +47,7 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
 
 pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
     let data = Pin::new(data.as_bytes());
-    println!("ibwrta");
     ibwrta(ud, data)?;
-    println!("wait");
     let status = wait(
         ud,
         IbStatus::default()
@@ -61,13 +58,10 @@ pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
     )
     .await?;
     if status.timo {
-        println!("status.timo");
         Err(GpibError::Timeout)
     } else if status.cmpl || status.end {
-        println!("status cmpl || end");
         Ok(())
     } else {
-        println!("else GpibError");
         Err(GpibError::ValueError(format!(
             "Unexpected status after waiting: {:?}",
             status

@@ -21,8 +21,8 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
     const BUFFER_SIZE: usize = 1024;
     let mut result: Vec<u8> = Vec::new();
     loop {
-        let mut buffer: Pin<Box<[u8; BUFFER_SIZE]>> = Box::pin([0; BUFFER_SIZE]);
-        ibrda(ud, &mut buffer)?;
+        let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
+        ibrda(ud, Pin::new(&mut buffer))?;
         let status = wait(
             ud,
             IbStatus::default()
@@ -47,8 +47,10 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
 }
 
 pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
-    let data: Pin<Box<&[u8]>> = Box::pin(data.as_bytes());
+    let data = Pin::new(data.as_bytes());
+    println!("ibwrta");
     ibwrta(ud, data)?;
+    println!("wait");
     let status = wait(
         ud,
         IbStatus::default()
@@ -59,10 +61,13 @@ pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
     )
     .await?;
     if status.timo {
+        println!("status.timo");
         Err(GpibError::Timeout)
     } else if status.cmpl || status.end {
+        println!("status cmpl || end");
         Ok(())
     } else {
+        println!("else GpibError");
         Err(GpibError::ValueError(format!(
             "Unexpected status after waiting: {:?}",
             status

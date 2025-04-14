@@ -363,7 +363,7 @@ pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
 
 /// ibcmda -- write command bytes asynchronously (board)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcmda.html
-pub fn ibcmda(ud: c_int, commands: &Pin<Box<[u8]>>) -> Result<(), GpibError> {
+pub fn ibcmda(ud: c_int, commands: Pin<&mut [u8]>) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibcmda(
             ud,
@@ -390,43 +390,201 @@ pub fn ibconfig(ud: c_int, option: IbOption, setting: c_int) -> Result<(), GpibE
     }
 }
 
-/// ibdev -- open a device (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibdev.html
-pub fn ibdev(
-    board_index: c_int,
-    primary_address: c_int,
-    secondary_address: c_int,
-    timeout: c_int,
-    send_eoi: c_int,
-    eos: c_int,
-) -> Result<c_int, GpibError> {
-    let ud = unsafe {
-        linux_gpib_sys::ibdev(
-            board_index,
-            primary_address,
-            secondary_address,
-            timeout,
-            send_eoi,
-            eos,
-        )
-    };
-    if ud >= 0 {
-        Ok(ud)
-    } else {
-        Err(GpibError::DriverError(
-            IbStatus::current_status(),
-            IbError::current_error()?,
-        ))
+pub enum IbTimeout {
+    TNone,
+    T10us,
+    T30us,
+    T100us,
+    T300us,
+    T1ms,
+    T3ms,
+    T10ms,
+    T30ms,
+    T100ms,
+    T300ms,
+    T1s,
+    T3s,
+    T10s,
+    T30s,
+    T100s,
+    T300s,
+    T1000s,
+}
+
+impl fmt::Display for IbTimeout {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            IbTimeout::TNone => {
+                write!(f, "Never timeout")
+            }
+            IbTimeout::T10us => {
+                write!(f, "10 microseconds")
+            }
+            IbTimeout::T30us => {
+                write!(f, "30 microseconds")
+            }
+            IbTimeout::T100us => {
+                write!(f, "100 microseconds")
+            }
+            IbTimeout::T300us => {
+                write!(f, "300 microseconds")
+            }
+            IbTimeout::T1ms => {
+                write!(f, "1 millisecond")
+            }
+            IbTimeout::T3ms => {
+                write!(f, "3 milliseconds")
+            }
+            IbTimeout::T10ms => {
+                write!(f, "10 milliseconds")
+            }
+            IbTimeout::T30ms => {
+                write!(f, "30 milliseconds")
+            }
+            IbTimeout::T100ms => {
+                write!(f, "100 milliseconds")
+            }
+            IbTimeout::T300ms => {
+                write!(f, "300 milliseconds")
+            }
+            IbTimeout::T1s => {
+                write!(f, "1 second")
+            }
+            IbTimeout::T3s => {
+                write!(f, "3 seconds")
+            }
+            IbTimeout::T10s => {
+                write!(f, "10 seconds")
+            }
+            IbTimeout::T30s => {
+                write!(f, "30 seconds")
+            }
+            IbTimeout::T100s => {
+                write!(f, "100 seconds")
+            }
+            IbTimeout::T300s => {
+                write!(f, "300 seconds")
+            }
+            IbTimeout::T1000s => {
+                write!(f, "1000 seconds")
+            }
+        }
     }
 }
 
-pub struct EosMode {
+impl IbTimeout {
+    fn as_timeout(&self) -> c_int {
+        match self {
+            IbTimeout::TNone => 0,
+            IbTimeout::T10us => 1,
+            IbTimeout::T30us => 2,
+            IbTimeout::T100us => 3,
+            IbTimeout::T300us => 4,
+            IbTimeout::T1ms => 5,
+            IbTimeout::T3ms => 6,
+            IbTimeout::T10ms => 7,
+            IbTimeout::T30ms => 8,
+            IbTimeout::T100ms => 9,
+            IbTimeout::T300ms => 10,
+            IbTimeout::T1s => 11,
+            IbTimeout::T3s => 12,
+            IbTimeout::T10s => 13,
+            IbTimeout::T30s => 14,
+            IbTimeout::T100s => 15,
+            IbTimeout::T300s => 16,
+            IbTimeout::T1000s => 17,
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct PrimaryAddress {
+    pad: c_int
+}
+
+impl PrimaryAddress {
+
+    pub fn new(pad: c_int) -> Result<PrimaryAddress, GpibError> {
+        if pad >= 0 && pad <= 30 {
+            Ok(PrimaryAddress { pad })
+        } else {
+            Err(GpibError::ValueError(format!("Primary address must be between 0 and 30. Got: {}.", pad)))
+        }
+    }
+
+    fn as_pad(&self) -> c_int {
+        self.pad
+    }
+
+}
+
+#[derive(Copy, Clone)]
+pub struct SecondaryAddress {
+    sad: c_int
+}
+
+impl SecondaryAddress {
+
+    pub fn new(sad: c_int) -> Result<SecondaryAddress, GpibError> {
+        let desc = "Secondary address must be between 0 and 30 (without the 0x60 prefix), or equivalently between 0x60 and 0x7e (with the 0x60 addition). sad = 0 disables secondary address.";
+        let sad = if sad < 0 {
+            return Err(GpibError::ValueError(desc.to_owned()));
+        } else if sad == 0 {
+            // disable secondary address
+            sad
+        } else if sad <= 30 {
+            // sad are between 0 and 30 but
+            // NI convention adds 0x60 to the secondary address
+            sad + 0x60
+        } else if sad >= 0x60 && sad <= 0x7e {
+            sad
+        } else {
+            return Err(GpibError::ValueError(desc.to_owned()));
+        };
+        Ok(  SecondaryAddress { sad } )
+    }
+
+    fn as_sad(&self) -> c_int {
+        self.sad
+    }
+}
+
+impl Default for SecondaryAddress {
+    fn default() -> SecondaryAddress {
+        SecondaryAddress { sad: 0 }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum IbSendEOI {
+    Disabled,
+    Enabled(c_int),
+}
+
+impl IbSendEOI {
+
+    fn as_eot(&self) -> c_int {
+        match self {
+            IbSendEOI::Disabled => 0,
+            IbSendEOI::Enabled(val) => *val,
+        }
+    }
+}
+
+impl Default for IbSendEOI {
+    fn default() -> IbSendEOI {
+        IbSendEOI::Disabled
+    }
+}
+
+#[derive(Copy, Clone)]
+pub struct IbEosMode {
     pub reos: bool,
     pub xeos: bool,
     pub bin: bool,
 }
 
-impl fmt::Display for EosMode {
+impl fmt::Display for IbEosMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut description = String::new();
         if self.reos {
@@ -446,7 +604,7 @@ impl fmt::Display for EosMode {
     }
 }
 
-impl fmt::Debug for EosMode {
+impl fmt::Debug for IbEosMode {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         let mut description = String::new();
         if self.reos {
@@ -468,7 +626,7 @@ impl fmt::Debug for EosMode {
     }
 }
 
-impl EosMode {
+impl IbEosMode {
     pub fn as_mode(&self) -> c_int {
         let mut mode = 0;
         if self.reos {
@@ -484,9 +642,50 @@ impl EosMode {
     }
 }
 
+impl Default for IbEosMode {
+
+    fn default() -> IbEosMode {
+        IbEosMode {
+            reos: true,
+            xeos: false,
+            bin: false,
+        }
+    }
+}
+
+/// ibdev -- open a device (device)
+/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibdev.html
+pub fn ibdev(
+    board_index: c_int,
+    primary_address: PrimaryAddress,
+    secondary_address: SecondaryAddress,
+    timeout: IbTimeout,
+    send_eoi: IbSendEOI,
+    eos: IbEosMode,
+) -> Result<c_int, GpibError> {
+    let ud = unsafe {
+        linux_gpib_sys::ibdev(
+            board_index,
+            primary_address.as_pad(),
+            secondary_address.as_sad(),
+            timeout.as_timeout(),
+            send_eoi.as_eot(),
+            eos.as_mode(),
+        )
+    };
+    if ud >= 0 {
+        Ok(ud)
+    } else {
+        Err(GpibError::DriverError(
+            IbStatus::current_status(),
+            IbError::current_error()?,
+        ))
+    }
+}
+
 /// ibeos -- set end-of-string mode (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeos.html
-pub fn ibeos(ud: c_int, eosmod: EosMode) -> Result<(), GpibError> {
+pub fn ibeos(ud: c_int, eosmod: IbEosMode) -> Result<(), GpibError> {
     let eosmod = eosmod.as_mode();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeos(ud, eosmod) });
     if status.err {
@@ -498,8 +697,8 @@ pub fn ibeos(ud: c_int, eosmod: EosMode) -> Result<(), GpibError> {
 
 /// ibeot -- assert EOI with last data byte (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeot.html
-pub fn ibeot(ud: c_int, send_eoi: c_int) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeot(ud, send_eoi) });
+pub fn ibeot(ud: c_int, send_eoi: IbSendEOI) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeot(ud, send_eoi.as_eot()) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
@@ -697,15 +896,15 @@ pub fn iblines(ud: c_int) -> Result<IbLineStatus, GpibError> {
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibln.html
 pub fn ibln(
     ud: c_int,
-    primary_address: c_int,
-    secondary_address: c_int,
+    primary_address: PrimaryAddress,
+    secondary_address: SecondaryAddress,
 ) -> Result<bool, GpibError> {
     let mut found_listener: c_short = 0;
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibln(
             ud,
-            primary_address,
-            secondary_address,
+            primary_address.as_pad(),
+            secondary_address.as_sad(),
             &mut found_listener as *mut c_short,
         )
     });
@@ -740,8 +939,8 @@ pub fn ibonl(ud: c_int, online: c_int) -> Result<(), GpibError> {
 
 /// ibpad -- set primary GPIB address (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpad.html
-pub fn ibpad(ud: c_int, primary_address: c_int) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address) });
+pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address.as_pad()) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
@@ -773,18 +972,18 @@ pub fn ibppc(ud: c_int, configuration: c_int) -> Result<(), GpibError> {
 
 /// ibrd -- read data bytes (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrd.html
-pub fn idrd<const N: usize>(ud: c_int, buffer: &mut Pin<Box<[u8; N]>>) -> Result<usize, GpibError> {
+pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibrd(ud, buffer.as_mut_ptr() as *mut c_void, N.try_into()?)
+        linux_gpib_sys::ibrd(ud, buffer.as_mut_ptr() as *mut c_void, buffer.len().try_into()?)
     });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
         let bytes_read = unsafe { linux_gpib_sys::ibcntl };
-        if bytes_read > N.try_into()? {
+        if bytes_read > buffer.len().try_into()? {
             Err(GpibError::ValueError(format!(
-                "bytes_read ({}) > num_bytes ({})",
-                bytes_read, N,
+                "bytes_read ({}) > buffer.len() ({})",
+                bytes_read, buffer.len(),
             )))
         } else {
             Ok(bytes_read.try_into()?)
@@ -794,9 +993,9 @@ pub fn idrd<const N: usize>(ud: c_int, buffer: &mut Pin<Box<[u8; N]>>) -> Result
 
 /// ibrda -- read data bytes asynchronously (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrda.html
-pub fn ibrda<const N: usize>(ud: c_int, buffer: &mut Pin<Box<[u8; N]>>) -> Result<(), GpibError> {
+pub fn ibrda(ud: c_int, mut buffer: Pin<&mut [u8]>) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibrda(ud, buffer.as_mut_ptr() as *mut c_void, N.try_into()?)
+        linux_gpib_sys::ibrda(ud, buffer.as_mut_ptr() as *mut c_void, buffer.len().try_into()?)
     });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
@@ -888,8 +1087,8 @@ pub fn ibrsv2(
 
 /// ibsad -- set secondary GPIB address (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsad.html
-pub fn ibsad(ud: c_int, secondary_address: c_int) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address) });
+pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address.as_sad()) });
     if status.err {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
@@ -940,113 +1139,6 @@ pub fn ibstop(ud: c_int) -> Result<(), GpibError> {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
         Ok(())
-    }
-}
-
-pub enum IbTimeout {
-    TNone,
-    T10us,
-    T30us,
-    T100us,
-    T300us,
-    T1ms,
-    T3ms,
-    T10ms,
-    T30ms,
-    T100ms,
-    T300ms,
-    T1s,
-    T3s,
-    T10s,
-    T30s,
-    T100s,
-    T300s,
-    T1000s,
-}
-
-impl fmt::Display for IbTimeout {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            IbTimeout::TNone => {
-                write!(f, "Never timeout")
-            }
-            IbTimeout::T10us => {
-                write!(f, "10 microseconds")
-            }
-            IbTimeout::T30us => {
-                write!(f, "30 microseconds")
-            }
-            IbTimeout::T100us => {
-                write!(f, "100 microseconds")
-            }
-            IbTimeout::T300us => {
-                write!(f, "300 microseconds")
-            }
-            IbTimeout::T1ms => {
-                write!(f, "1 millisecond")
-            }
-            IbTimeout::T3ms => {
-                write!(f, "3 milliseconds")
-            }
-            IbTimeout::T10ms => {
-                write!(f, "10 milliseconds")
-            }
-            IbTimeout::T30ms => {
-                write!(f, "30 milliseconds")
-            }
-            IbTimeout::T100ms => {
-                write!(f, "100 milliseconds")
-            }
-            IbTimeout::T300ms => {
-                write!(f, "300 milliseconds")
-            }
-            IbTimeout::T1s => {
-                write!(f, "1 second")
-            }
-            IbTimeout::T3s => {
-                write!(f, "3 seconds")
-            }
-            IbTimeout::T10s => {
-                write!(f, "10 seconds")
-            }
-            IbTimeout::T30s => {
-                write!(f, "30 seconds")
-            }
-            IbTimeout::T100s => {
-                write!(f, "100 seconds")
-            }
-            IbTimeout::T300s => {
-                write!(f, "300 seconds")
-            }
-            IbTimeout::T1000s => {
-                write!(f, "1000 seconds")
-            }
-        }
-    }
-}
-
-impl IbTimeout {
-    fn as_timeout(&self) -> c_int {
-        match self {
-            IbTimeout::TNone => 0,
-            IbTimeout::T10us => 1,
-            IbTimeout::T30us => 2,
-            IbTimeout::T100us => 3,
-            IbTimeout::T300us => 4,
-            IbTimeout::T1ms => 5,
-            IbTimeout::T3ms => 6,
-            IbTimeout::T10ms => 7,
-            IbTimeout::T30ms => 8,
-            IbTimeout::T100ms => 9,
-            IbTimeout::T300ms => 10,
-            IbTimeout::T1s => 11,
-            IbTimeout::T3s => 12,
-            IbTimeout::T10s => 13,
-            IbTimeout::T30s => 14,
-            IbTimeout::T100s => 15,
-            IbTimeout::T300s => 16,
-            IbTimeout::T1000s => 17,
-        }
     }
 }
 
@@ -1108,7 +1200,7 @@ pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
 
 /// ibwrta -- write data bytes asynchronously (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrta.html
-pub fn ibwrta(ud: c_int, data: Pin<Box<&[u8]>>) -> Result<(), GpibError> {
+pub fn ibwrta(ud: c_int, data: Pin<&[u8]>) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
     });

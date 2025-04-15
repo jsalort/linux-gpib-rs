@@ -1,5 +1,8 @@
 # linux-gpib-rs
 
+[![crates.io](https://img.shields.io/crates/v/linux-gpib-rs.svg)](https://crates.io/crates/linux-gpib-rs)
+[![docs](https://docs.rs/linux-gpib-rs/badge.svg)](https://docs.rs/linux-gpib-rs)
+
 Low-level wrapper for Linux GPIB.
 
 Documentation for the functions comes from [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference.html).

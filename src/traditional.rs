@@ -368,23 +368,6 @@ pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
     }
 }
 
-/// ibcmda -- write command bytes asynchronously (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcmda.html
-pub fn ibcmda(ud: c_int, commands: &mut [u8]) -> Result<(), GpibError> {
-    let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibcmda(
-            ud,
-            commands.as_ptr() as *const c_void,
-            commands.len().try_into()?,
-        )
-    });
-    if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
-    } else {
-        Ok(())
-    }
-}
-
 /// ibconfig -- change configuration (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibconfig.html
 pub fn ibconfig(ud: c_int, option: IbOption, setting: c_int) -> Result<(), GpibError> {
@@ -1080,29 +1063,6 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
     }
 }
 
-/// ibrda -- read data bytes asynchronously (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrda.html
-pub fn ibrda(ud: c_int, buffer: &mut [u8]) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("ibrda({}, count = {})", ud, buffer.len());
-    }
-    let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibrda(
-            ud,
-            buffer.as_mut_ptr() as *mut c_void,
-            buffer.len().try_into()?,
-        )
-    });
-    if DEBUG {
-        println!("-> {:?}", status);
-    }
-    if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
-    } else {
-        Ok(())
-    }
-}
-
 /// ibrdf -- read data bytes to file (board or device)
 /// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrdf.html
 pub fn ibrdf(ud: c_int, file_path: &Path) -> Result<(), GpibError> {
@@ -1307,25 +1267,6 @@ pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
         Err(GpibError::DriverError(status, IbError::current_error()?))
     } else {
         Ok(unsafe { linux_gpib_sys::ibcntl }.try_into()?)
-    }
-}
-
-/// ibwrta -- write data bytes asynchronously (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrta.html
-pub fn ibwrta(ud: c_int, data: &[u8]) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("ibwrta({}, {:?})", ud, String::from_utf8(data.to_vec())?);
-    }
-    let status = IbStatus::from_ibsta(unsafe {
-        linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
-    });
-    if DEBUG {
-        println!("-> {:?}", status);
-    }
-    if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
-    } else {
-        Ok(())
     }
 }
 

@@ -21,7 +21,16 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
     let mut result: Vec<u8> = Vec::new();
     loop {
         let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-        ibrda(ud, &mut buffer)?;
+        let status = IbStatus::from_ibsta(unsafe {
+            linux_gpib_sys::ibrda(
+                ud,
+                buffer.as_mut_ptr() as *mut c_void,
+                buffer.len().try_into()?,
+            )
+        });
+        if status.err {
+            return Err(GpibError::DriverError(status, IbError::current_error()?));
+        }
         let status = wait(
             ud,
             IbStatus::default()
@@ -46,7 +55,13 @@ pub async fn read(ud: c_int) -> Result<String, GpibError> {
 }
 
 pub async fn write(ud: c_int, data: &str) -> Result<(), GpibError> {
-    ibwrta(ud, data.as_bytes())?;
+    let data = data.as_bytes();
+    let status = IbStatus::from_ibsta(unsafe {
+        linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
+    });
+    if status.err {
+        return Err(GpibError::DriverError(status, IbError::current_error()?));
+    }
     let status = wait(
         ud,
         IbStatus::default()

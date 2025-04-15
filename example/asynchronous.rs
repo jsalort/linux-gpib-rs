@@ -1,7 +1,7 @@
 #!/usr/bin/env -S cargo +nightly -Zscript
 ---
 [dependencies]
-linux-gpib-rs = { path = ".." }
+linux-gpib-rs = "0.1"
 tokio = { version = "1", features = ["full"] }
 ---
 use linux_gpib_rs::{open, write, read, OpenParam};

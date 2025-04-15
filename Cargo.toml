@@ -6,7 +6,10 @@ edition = "2024"
 license-file = "LICENSE.txt"
 description = "Low-level wrapper for Linux GPIB"
 repository = "https://github.com/jsalort/linux-gpib-rs"
+homepage = "https://github.com/jsalort/linux-gpib-rs"
 readme = "README.md"
+keywords = ["control", "gpib", "instrument"]
+categories = ["api-bindings"]
 
 [features]
 default = ["async-tokio"]

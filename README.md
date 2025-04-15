@@ -2,6 +2,25 @@
 
 Low-level wrapper for Linux GPIB.
 
+Documentation for the functions comes from [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference.html).
+At the moment, only the 'Traditional' API Functions are wrapped.
+
+## Requirements
+
+This crate needs to link to an installed linux-gpib user library. It will look for `gpib/ib.h` in either `/usr/include` or `/usr/local/include`,
+and for `libgpib.so` in either `/usr/lib` or `/usr/local/lib`.
+
+
+## Example
+
+Add dependencies below to `Cargo.toml`
+
+```toml
+linux-gpib-rs = { version = "0.1", features = ["async-tokio"] }
+```
+
+Codes below will connect to the instrument on `GPIB0::1::INSTR` and print out its `*IDN?` response.
+
 **Synchronous example**
 
 We can use the low-level synchronous functions `ibrd` and `ibwrt`.

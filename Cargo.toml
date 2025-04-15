@@ -16,7 +16,7 @@ default = ["async-tokio"]
 async-tokio = ["dep:tokio"]
 
 [dependencies]
-linux-gpib-sys = { path = "./linux-gpib-sys", version = "0.1" }
+linux-gpib-sys = { version = "^0.1.0", path = "./linux-gpib-sys" }
 tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]

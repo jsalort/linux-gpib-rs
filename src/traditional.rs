@@ -296,7 +296,7 @@ impl IbOption {
 }
 
 /// ibask -- query configuration (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibask.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibask.html)
 pub fn ibask(ud: c_int, option: IbOption) -> Result<c_int, GpibError> {
     let option = option.as_option();
     let mut result: c_int = 0;
@@ -311,7 +311,7 @@ pub fn ibask(ud: c_int, option: IbOption) -> Result<c_int, GpibError> {
 }
 
 /// ibbna -- change access board (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibbna.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibbna.html)
 pub fn ibbna(ud: c_int, name: &str) -> Result<(), GpibError> {
     let name = CString::new(name)?;
     let status =
@@ -324,7 +324,7 @@ pub fn ibbna(ud: c_int, name: &str) -> Result<(), GpibError> {
 }
 
 /// ibcac -- assert ATN (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcac.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcac.html)
 pub fn ibcac(ud: c_int, synchronous: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibcac(ud, synchronous) });
     if status.err {
@@ -335,7 +335,7 @@ pub fn ibcac(ud: c_int, synchronous: c_int) -> Result<(), GpibError> {
 }
 
 /// ibclr -- clear device (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibclr.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibclr.html)
 pub fn ibclr(ud: c_int) -> Result<(), GpibError> {
     if DEBUG {
         println!("ibclr({})", ud);
@@ -352,7 +352,7 @@ pub fn ibclr(ud: c_int) -> Result<(), GpibError> {
 }
 
 /// ibcmd -- write command bytes (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcmd.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcmd.html)
 pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibcmd(
@@ -369,7 +369,7 @@ pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
 }
 
 /// ibconfig -- change configuration (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibconfig.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibconfig.html)
 pub fn ibconfig(ud: c_int, option: IbOption, setting: c_int) -> Result<(), GpibError> {
     let option = option.as_option();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibconfig(ud, option, setting) });
@@ -668,7 +668,7 @@ impl Default for IbEosMode {
 }
 
 /// ibdev -- open a device (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibdev.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibdev.html)
 pub fn ibdev(
     board_index: c_int,
     primary_address: PrimaryAddress,
@@ -707,7 +707,7 @@ pub fn ibdev(
 }
 
 /// ibeos -- set end-of-string mode (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeos.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeos.html)
 pub fn ibeos(ud: c_int, eosmod: IbEosMode) -> Result<(), GpibError> {
     let eosmod = eosmod.as_mode();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeos(ud, eosmod) });
@@ -719,7 +719,7 @@ pub fn ibeos(ud: c_int, eosmod: IbEosMode) -> Result<(), GpibError> {
 }
 
 /// ibeot -- assert EOI with last data byte (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeot.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibeot.html)
 pub fn ibeot(ud: c_int, send_eoi: IbSendEOI) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeot(ud, send_eoi.as_eot()) });
     if status.err {
@@ -793,7 +793,7 @@ impl IbEvent {
 }
 
 /// ibevent -- get events from event queue (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibevent.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibevent.html)
 pub fn ibevent(ud: c_int) -> Result<IbEvent, GpibError> {
     let mut event_value: c_short = 0;
     let status = IbStatus::from_ibsta(unsafe {
@@ -807,7 +807,7 @@ pub fn ibevent(ud: c_int) -> Result<IbEvent, GpibError> {
 }
 
 /// ibfind -- open a board or device (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibfind.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibfind.html)
 pub fn ibfind(name: &str) -> Result<c_int, GpibError> {
     let name = CString::new(name)?;
     let ud = unsafe { linux_gpib_sys::ibfind(name.as_ptr()) };
@@ -822,7 +822,7 @@ pub fn ibfind(name: &str) -> Result<c_int, GpibError> {
 }
 
 /// ibgts -- release ATN (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibgts.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibgts.html)
 pub fn ibgts(ud: c_int, shadow_handshake: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibgts(ud, shadow_handshake) });
     if status.err {
@@ -833,7 +833,7 @@ pub fn ibgts(ud: c_int, shadow_handshake: c_int) -> Result<(), GpibError> {
 }
 
 /// ibist -- set individual status bit (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibist.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibist.html)
 pub fn ibist(ud: c_int, ist: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibist(ud, ist) });
     if status.err {
@@ -902,7 +902,7 @@ impl IbLineStatus {
 }
 
 /// iblines -- monitor bus lines (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-iblines.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-iblines.html)
 pub fn iblines(ud: c_int) -> Result<IbLineStatus, GpibError> {
     let mut line_status: c_short = 0;
     let status = IbStatus::from_ibsta(unsafe {
@@ -916,7 +916,7 @@ pub fn iblines(ud: c_int) -> Result<IbLineStatus, GpibError> {
 }
 
 /// ibln -- check if listener is present (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibln.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibln.html)
 pub fn ibln(
     ud: c_int,
     primary_address: PrimaryAddress,
@@ -939,7 +939,7 @@ pub fn ibln(
 }
 
 /// ibloc -- go to local mode (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibloc.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibloc.html)
 pub fn ibloc(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibloc(ud) });
     if status.err {
@@ -977,7 +977,7 @@ impl fmt::Display for IbOnline {
 }
 
 /// ibonl -- close or reinitialize descriptor (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibonl.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibonl.html)
 pub fn ibonl(ud: c_int, online: IbOnline) -> Result<(), GpibError> {
     if DEBUG {
         println!("ibonl({}, {})", ud, online);
@@ -995,7 +995,7 @@ pub fn ibonl(ud: c_int, online: IbOnline) -> Result<(), GpibError> {
 }
 
 /// ibpad -- set primary GPIB address (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpad.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpad.html)
 pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError> {
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address.as_pad()) });
@@ -1007,7 +1007,7 @@ pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError
 }
 
 /// ibpct -- pass control (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpct.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpct.html)
 pub fn ibpct(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpct(ud) });
     if status.err {
@@ -1018,7 +1018,7 @@ pub fn ibpct(ud: c_int) -> Result<(), GpibError> {
 }
 
 /// ibppc -- parallel poll configure (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibppc.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibppc.html)
 pub fn ibppc(ud: c_int, configuration: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibppc(ud, configuration) });
     if status.err {
@@ -1029,7 +1029,7 @@ pub fn ibppc(ud: c_int, configuration: c_int) -> Result<(), GpibError> {
 }
 
 /// ibrd -- read data bytes (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrd.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrd.html)
 pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
     if DEBUG {
         println!("ibrd({}, count = {})", ud, buffer.len());
@@ -1064,7 +1064,7 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<usize, GpibError> {
 }
 
 /// ibrdf -- read data bytes to file (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrdf.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrdf.html)
 pub fn ibrdf(ud: c_int, file_path: &Path) -> Result<(), GpibError> {
     let file_path = CString::new(file_path.to_str().ok_or(GpibError::ValueError(format!(
         "Unable to convert path '{:?}' to string",
@@ -1079,7 +1079,7 @@ pub fn ibrdf(ud: c_int, file_path: &Path) -> Result<(), GpibError> {
 }
 
 /// ibrpp -- perform a parallel poll (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrpp.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrpp.html)
 pub fn ibrpp(ud: c_int) -> Result<c_char, GpibError> {
     let mut ppoll_result: c_char = 0;
     let status = IbStatus::from_ibsta(unsafe {
@@ -1093,7 +1093,7 @@ pub fn ibrpp(ud: c_int) -> Result<c_char, GpibError> {
 }
 
 /// ibrsc -- request system control (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsc.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsc.html)
 pub fn ibrsc(ud: c_int, request_control: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrsc(ud, request_control) });
     if status.err {
@@ -1104,7 +1104,7 @@ pub fn ibrsc(ud: c_int, request_control: c_int) -> Result<(), GpibError> {
 }
 
 /// ibrsp --  read status byte / serial poll (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsp.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsp.html)
 pub fn ibrsp(ud: c_int) -> Result<c_char, GpibError> {
     let mut result: c_char = 0;
     let status =
@@ -1117,7 +1117,7 @@ pub fn ibrsp(ud: c_int) -> Result<c_char, GpibError> {
 }
 
 /// ibrsv -- request service (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsv.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsv.html)
 pub fn ibrsv(ud: c_int, status_byte: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrsv(ud, status_byte) });
     if status.err {
@@ -1128,7 +1128,7 @@ pub fn ibrsv(ud: c_int, status_byte: c_int) -> Result<(), GpibError> {
 }
 
 /// ibrsv2 -- request service (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsv2.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrsv2.html)
 pub fn ibrsv2(
     ud: c_int,
     status_byte: c_int,
@@ -1145,7 +1145,7 @@ pub fn ibrsv2(
 }
 
 /// ibsad -- set secondary GPIB address (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsad.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsad.html)
 pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibError> {
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address.as_sad()) });
@@ -1157,7 +1157,7 @@ pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibE
 }
 
 /// ibsic -- perform interface clear (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsic.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsic.html)
 pub fn ibsic(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsic(ud) });
     if status.err {
@@ -1168,7 +1168,7 @@ pub fn ibsic(ud: c_int) -> Result<(), GpibError> {
 }
 
 /// ibspb --  obtain length of serial poll bytes queue (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibspb.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibspb.html)
 pub fn ibspb(ud: c_int) -> Result<c_short, GpibError> {
     let mut result: c_short = 0;
     let status =
@@ -1181,7 +1181,7 @@ pub fn ibspb(ud: c_int) -> Result<c_short, GpibError> {
 }
 
 /// ibsre -- set remote enable (board)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsre.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibsre.html)
 pub fn ibsre(ud: c_int, enable: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsre(ud, enable) });
     if status.err {
@@ -1192,7 +1192,7 @@ pub fn ibsre(ud: c_int, enable: c_int) -> Result<(), GpibError> {
 }
 
 /// ibstop -- abort asynchronous i/o operation (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibstop.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibstop.html)
 pub fn ibstop(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibstop(ud) });
     if status.err {
@@ -1203,7 +1203,7 @@ pub fn ibstop(ud: c_int) -> Result<(), GpibError> {
 }
 
 /// ibtmo -- adjust io timeout (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibtmo.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibtmo.html)
 pub fn ibtmo(ud: c_int, timeout: IbTimeout) -> Result<(), GpibError> {
     let timeout = timeout.as_timeout();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibtmo(ud, timeout) });
@@ -1215,7 +1215,7 @@ pub fn ibtmo(ud: c_int, timeout: IbTimeout) -> Result<(), GpibError> {
 }
 
 /// ibtrg -- trigger device (device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibtrg.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibtrg.html)
 pub fn ibtrg(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibtrg(ud) });
     if status.err {
@@ -1226,7 +1226,7 @@ pub fn ibtrg(ud: c_int) -> Result<(), GpibError> {
 }
 
 /// ibvers -- Obtain the current linux gpib version
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibvers.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibvers.html)
 pub fn ibvers() -> Result<String, GpibError> {
     let mut buffer_ptr: *mut c_char = std::ptr::null_mut();
     unsafe { linux_gpib_sys::ibvers(&mut buffer_ptr as *mut *mut c_char) }
@@ -1234,7 +1234,7 @@ pub fn ibvers() -> Result<String, GpibError> {
 }
 
 /// ibwait -- wait for event (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwait.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwait.html)
 pub fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<(), GpibError> {
     if DEBUG {
         println!("ibwait({}, {})", ud, status_mask);
@@ -1252,7 +1252,7 @@ pub fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<(), GpibError> {
 }
 
 /// ibwrt -- write data bytes (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrt.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrt.html)
 pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
     if DEBUG {
         println!("ibwrt({}, {:?})", ud, String::from_utf8(data.to_vec())?);
@@ -1271,7 +1271,7 @@ pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
 }
 
 /// ibwrtf -- write data bytes from file (board or device)
-/// See: https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrtf.html
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrtf.html)
 pub fn ibwrtf(ud: c_int, file_path: &Path) -> Result<usize, GpibError> {
     let file_path = CString::new(file_path.to_str().ok_or(GpibError::ValueError(format!(
         "Unable to convert path '{:?}' to string",

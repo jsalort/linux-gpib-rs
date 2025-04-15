@@ -1,6 +1,6 @@
 [package]
 name = "linux-gpib-sys"
-version = "0.1.11"
+version = "0.1.0"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
 

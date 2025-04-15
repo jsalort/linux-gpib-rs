@@ -1,7 +1,6 @@
 use crate::error::{GpibError, IbError};
 use crate::status::IbStatus;
-use crate::traditional::{ibrda, ibwrta};
-use std::os::raw::c_int;
+use std::os::raw::{c_int, c_void};
 
 pub async fn wait(ud: c_int, status_mask: IbStatus) -> Result<IbStatus, GpibError> {
     let status_mask = status_mask.as_ibsta();

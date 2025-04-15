@@ -3,6 +3,10 @@ name = "linux-gpib-rs"
 version = "0.1.0"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
+license-file = "LICENSE.txt"
+description = "Low-level wrapper for Linux GPIB"
+repository = "https://github.com/jsalort/linux-gpib-rs"
+readme = "README.md"
 
 [features]
 default = ["async-tokio"]

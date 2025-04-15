@@ -5,7 +5,6 @@ repos:
     - id: rust
       exclude: |
         (?x) (
-            ^examples/|
-            install.rs
+            ^example/|
         )
     - id: clang

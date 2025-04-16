@@ -1,6 +1,6 @@
 [package]
 name = "linux-gpib-rs"
-version = "0.1.2"
+version = "0.2.0"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
 license-file = "LICENSE.txt"
@@ -26,3 +26,7 @@ tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]
 crate-type = ["lib", "cdylib"]
+
+[[bin]]
+name = "scan_gpib"
+path = "src/cli.rs"

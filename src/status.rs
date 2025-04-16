@@ -1,3 +1,4 @@
+use crate::lowlevel::utility::ThreadIbsta;
 use linux_gpib_sys::{
     ibsta_bit_numbers_ATN_NUM, ibsta_bit_numbers_CIC_NUM, ibsta_bit_numbers_CMPL_NUM,
     ibsta_bit_numbers_DCAS_NUM, ibsta_bit_numbers_DTAS_NUM, ibsta_bit_numbers_END_NUM,
@@ -32,6 +33,10 @@ impl IbStatus {
     /// Get current value of from Linux-GPIB ibsta global variable
     pub fn current_status() -> IbStatus {
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsta })
+    }
+
+    pub fn current_thread_local_status() -> IbStatus {
+        IbStatus::from_ibsta(ThreadIbsta())
     }
 
     /// Convert c_int status value to IbStatus

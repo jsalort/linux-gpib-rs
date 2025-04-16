@@ -1,4 +1,6 @@
+use crate::lowlevel::utility::ThreadIberr;
 use crate::status::IbStatus;
+use std::convert::Infallible;
 use std::error::Error;
 use std::ffi::NulError;
 use std::fmt;
@@ -145,10 +147,16 @@ impl fmt::Debug for IbError {
                 )
             }
             IbError::ENOL => {
-                write!(f, "ENOL (You have attempted to write data or command bytes, but there are no listeners currently addressed)")
+                write!(
+                    f,
+                    "ENOL (You have attempted to write data or command bytes, but there are no listeners currently addressed)"
+                )
             }
             IbError::EADR => {
-                write!(f, "EADR (The interface board has failed to address itself properly before starting an io operation)")
+                write!(
+                    f,
+                    "EADR (The interface board has failed to address itself properly before starting an io operation)"
+                )
             }
             IbError::EARG => {
                 write!(
@@ -163,10 +171,16 @@ impl fmt::Debug for IbError {
                 )
             }
             IbError::EABO => {
-                write!(f, "EABO (A read or write of data bytes has been aborted, possibly due to a timeout or reception of a device clear command)")
+                write!(
+                    f,
+                    "EABO (A read or write of data bytes has been aborted, possibly due to a timeout or reception of a device clear command)"
+                )
             }
             IbError::ENEB => {
-                write!(f, "ENEB (The GPIB interface board does not exist, its driver is not loaded, or it is not configured properly)")
+                write!(
+                    f,
+                    "ENEB (The GPIB interface board does not exist, its driver is not loaded, or it is not configured properly)"
+                )
             }
             IbError::EDMA => {
                 write!(
@@ -175,10 +189,16 @@ impl fmt::Debug for IbError {
                 )
             }
             IbError::EOIP => {
-                write!(f, "EOIP (Function call can not proceed due to an asynchronous IO operation in progress)")
+                write!(
+                    f,
+                    "EOIP (Function call can not proceed due to an asynchronous IO operation in progress)"
+                )
             }
             IbError::ECAP => {
-                write!(f, "ECAP (incapable of executing function call, due the GPIB board lacking the capability, or the capability being disabled in software)")
+                write!(
+                    f,
+                    "ECAP (incapable of executing function call, due the GPIB board lacking the capability, or the capability being disabled in software)"
+                )
             }
             IbError::EFSO(ibcntl) => {
                 write!(f, "EFSO (file system error, ibcntl = {ibcntl})")
@@ -190,13 +210,22 @@ impl fmt::Debug for IbError {
                 )
             }
             IbError::ESTB => {
-                write!(f, "ESTB (one or more serial poll status bytes have been lost. This can occur due to too many status bytes accumulating, through automatic serial polling, without being read)")
+                write!(
+                    f,
+                    "ESTB (one or more serial poll status bytes have been lost. This can occur due to too many status bytes accumulating, through automatic serial polling, without being read)"
+                )
             }
             IbError::ESRQ => {
-                write!(f, "ESRQ (the serial poll request service line is stuck on. This can occur if a physical device on the bus requests service, but its GPIB address has not been opened by any process. Thus the automatic serial polling routines are unaware of the device's existence and will never serial poll it)")
+                write!(
+                    f,
+                    "ESRQ (the serial poll request service line is stuck on. This can occur if a physical device on the bus requests service, but its GPIB address has not been opened by any process. Thus the automatic serial polling routines are unaware of the device's existence and will never serial poll it)"
+                )
             }
             IbError::ETAB => {
-                write!(f, "ETAB (this error can be returned by ibevent(), FindLstn(), or FindRQS(). See their descriptions for more information)")
+                write!(
+                    f,
+                    "ETAB (this error can be returned by ibevent(), FindLstn(), or FindRQS(). See their descriptions for more information)"
+                )
             }
         }
     }
@@ -241,6 +270,19 @@ impl IbError {
             )))
         }
     }
+
+    /// Create IbError from current thread-local iberr value
+    pub fn current_thread_local_error() -> Result<IbError, GpibError> {
+        let status = IbStatus::current_thread_local_status();
+        if status.err {
+            IbError::from_iberr(ThreadIberr())
+        } else {
+            Err(GpibError::ValueError(format!(
+                "Unable to get error because is not ERR (status = {:?})",
+                status
+            )))
+        }
+    }
 }
 
 impl From<NulError> for GpibError {
@@ -264,6 +306,12 @@ impl From<FromUtf8Error> for GpibError {
 impl From<Utf8Error> for GpibError {
     fn from(e: Utf8Error) -> GpibError {
         GpibError::ValueError(format!("{:?}", e,))
+    }
+}
+
+impl From<Infallible> for GpibError {
+    fn from(e: Infallible) -> GpibError {
+        GpibError::ValueError(e.to_string())
     }
 }
 

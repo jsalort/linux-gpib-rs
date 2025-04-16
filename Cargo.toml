@@ -21,7 +21,7 @@ async-tokio = ["dep:tokio"]
 bindgen = ["linux-gpib-sys/bindgen"]
 
 [dependencies]
-linux-gpib-sys = { version = "^0.1.1", default-features = false }
+linux-gpib-sys = { version = "^0.1.2", default-features = false }
 tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]

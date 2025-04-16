@@ -1,6 +1,6 @@
 [package]
 name = "linux-gpib-rs"
-version = "0.1.0"
+version = "0.1.1"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
 license-file = "LICENSE.txt"
@@ -11,12 +11,17 @@ readme = "README.md"
 keywords = ["control", "gpib", "instrument"]
 categories = ["api-bindings"]
 
+[package.metadata.docs.rs]
+features = ["async-tokio"]
+no-default-features = true
+
 [features]
-default = ["async-tokio"]
+default = ["bindgen", "async-tokio"]
 async-tokio = ["dep:tokio"]
+bindgen = ["linux-gpib-sys/bindgen"]
 
 [dependencies]
-linux-gpib-sys = "^0.1.0"
+linux-gpib-sys = { version = "^0.1.1", default-features = false }
 tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]

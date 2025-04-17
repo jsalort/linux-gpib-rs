@@ -19,7 +19,7 @@ and for `libgpib.so` in either `/usr/lib` or `/usr/local/lib`.
 Add dependencies below to `Cargo.toml`
 
 ```toml
-linux-gpib-rs = { version = "0.1", features = ["async-tokio"] }
+linux-gpib-rs = { version = "0.2", features = ["async-tokio"] }
 ```
 
 Codes below will connect to the instrument on `GPIB0::1::INSTR` and print out its `*IDN?` response.

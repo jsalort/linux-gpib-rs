@@ -1,4 +1,4 @@
-use crate::lowlevel::utility::ThreadIberr;
+use crate::lowlevel::utility::{AsyncIberr, ThreadIberr};
 use crate::status::IbStatus;
 use std::convert::Infallible;
 use std::error::Error;
@@ -259,8 +259,8 @@ impl IbError {
     }
 
     /// Create IbError from current Linux-GPIB global iberr variable
-    pub fn current_error() -> Result<IbError, GpibError> {
-        let status = IbStatus::current_status();
+    pub unsafe fn current_global_error() -> Result<IbError, GpibError> {
+        let status = unsafe { IbStatus::current_global_status() };
         if status.err {
             IbError::from_iberr(unsafe { linux_gpib_sys::iberr })
         } else {
@@ -276,6 +276,19 @@ impl IbError {
         let status = IbStatus::current_thread_local_status();
         if status.err {
             IbError::from_iberr(ThreadIberr())
+        } else {
+            Err(GpibError::ValueError(format!(
+                "Unable to get error because is not ERR (status = {:?})",
+                status
+            )))
+        }
+    }
+
+    /// Create IbError for last asynchronous I/O operation
+    pub fn current_async_local_error() -> Result<IbError, GpibError> {
+        let status = IbStatus::current_async_local_status();
+        if status.err {
+            IbError::from_iberr(AsyncIberr())
         } else {
             Err(GpibError::ValueError(format!(
                 "Unable to get error because is not ERR (status = {:?})",

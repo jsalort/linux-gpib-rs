@@ -1,4 +1,4 @@
-use crate::lowlevel::utility::ThreadIbsta;
+use crate::lowlevel::utility::{AsyncIbsta, ThreadIbsta};
 use linux_gpib_sys::{
     ibsta_bit_numbers_ATN_NUM, ibsta_bit_numbers_CIC_NUM, ibsta_bit_numbers_CMPL_NUM,
     ibsta_bit_numbers_DCAS_NUM, ibsta_bit_numbers_DTAS_NUM, ibsta_bit_numbers_END_NUM,
@@ -30,13 +30,21 @@ pub struct IbStatus {
 }
 
 impl IbStatus {
-    /// Get current value of from Linux-GPIB ibsta global variable
-    pub fn current_status() -> IbStatus {
+    /// Get current value of from Linux-GPIB ibsta global variable.
+    /// Use `current_thread_local_status` or `current_async_status` instead.
+    pub unsafe fn current_global_status() -> IbStatus {
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsta })
     }
 
+    /// The value of ibsta corresponding to the last 'traditional' or 'multidevice' function
+    /// called by the current thread is returned.
     pub fn current_thread_local_status() -> IbStatus {
         IbStatus::from_ibsta(ThreadIbsta())
+    }
+
+    /// Thread-local status value corresponding to the result of the last asynchronous I/O operation resynchronized to the current thread by an ibwait or ibstop call. This function only reflects the result of the asynchronous I/O operation itself and not, for example, the ibwait which resynchronized the asynchronous result to the current thread. Thus the result from AsyncIbsta() is easier to interpret than ThreadIbsta(), since it is unambiguous whether the value is associated with the asynchronous I/O result, or with the function call used to resynchronize (ibwait or ibstop).
+    pub fn current_async_local_status() -> IbStatus {
+        IbStatus::from_ibsta(AsyncIbsta())
     }
 
     /// Convert c_int status value to IbStatus
@@ -251,7 +259,7 @@ impl fmt::Debug for IbStatus {
             description.push_str("ERR (last function call failed)");
         }
         if description.len() > 0 {
-            write!(f, "IbStatus({description})")
+            write!(f, "IbStatus({})", description.trim())
         } else {
             write!(f, "IbStatus(No flag set)")
         }
@@ -310,7 +318,7 @@ impl fmt::Display for IbStatus {
             description.push_str("ERR");
         }
         if description.len() > 0 {
-            write!(f, "IbStatus({description})")
+            write!(f, "IbStatus({})", description.trim())
         } else {
             write!(f, "IbStatus(No flag set)")
         }

@@ -20,45 +20,53 @@
 //!
 //! Codes below will connect to the instrument on `GPIB0::1::INSTR` and print out its `*IDN?` response.
 //!
-//! **Synchronous example**
-//!
-//! We can use the low-level synchronous functions `ibrd` and `ibwrt`.
+//! **Synchronous example with Multidevice API**
 //!
 //! ```rust
-//! use linux_gpib_rs::{
-//!     OpenParam,
-//!     open,
-//!     ibwrt,
-//!     ibrd,
-//! };
+//! use linux_gpib_rs::instrument::Board;
+//! use linux_gpib_rs::types::IbSendEOI;
 //! use std::error::Error;
 //!
 //! fn main() -> Result<(), Box<dyn Error>> {
-//!     let ud = open("GPIB0::1::INSTR", OpenParam::default())?;
-//!     ibwrt(ud, b"*IDN?\r\n")?;
-//!     let mut buffer: [u8; 256] = [0; 256];
-//!     ibrd(ud, &mut buffer)?;
-//!     let iden = String::from_utf8(buffer.to_vec())?;
-//!     println!("{iden}");
+//!     let board = Board::with_board_number(0);
+//!     let instruments = board.find_listeners()?;
+//!     board.send_list(&instruments, b"*IDN?\n", IbSendEOI::default())?;
+//!     for instr in instruments {
+//!         let iden = instr.receive()?;
+//!         println!("{:>20} {}", instr.visa_string(), iden.trim());
+//!     }
 //!     Ok(())
 //! }
 //! ```
 //!
 //! **Asynchronous example**
 //!
-//! We can use slightly higher-level asynchronous functions `write` and `read` (based on `ibrda` and `ibwrta`).
-//! This requires the `async-tokio` feature.
+//! Same thing with asynchronous API.
 //!
 //! ```rust
-//! use linux_gpib_rs::{open, write, read, OpenParam};
+//! use linux_gpib_rs::instrument::{Parameters, Board};
+//! use linux_gpib_rs::error::GpibError;
+//! use tokio::task::JoinSet;
 //! use std::error::Error;
 //!
 //! #[tokio::main]
 //! async fn main() -> Result<(), Box<dyn Error>> {
-//!     let ud = open("GPIB0::1::INSTR", OpenParam::default())?;
-//!     write(ud, "*IDN?\r\n").await?;
-//!     let iden = read(ud).await?;
-//!     println!("{iden}");
+//!     let board = Board::with_board_number(0);
+//!     let instruments = board.find_listeners()?;
+//!     let mut set = JoinSet::<Result<(String, String), GpibError>>::new();
+//!     for instr in instruments {
+//!         let handle = instr.open(Parameters::default())?;
+//!         let visa_string = instr.visa_string();
+//!         set.spawn(async move {
+//!             let iden = handle.query("*IDN?\n").await?;
+//!             Ok((visa_string, iden))
+//!         });
+//!     }
+//!     while let Some(Ok(val)) = set.join_next().await {
+//!         if let Ok((visa_string, iden)) = val {
+//!             println!("{:>20} {}", visa_string, iden.trim());
+//!         }
+//!     }
 //!     Ok(())
 //! }
 //! ```
@@ -68,3 +76,5 @@ pub mod instrument;
 pub mod lowlevel;
 pub mod status;
 pub mod types;
+
+const DEBUG: bool = false;

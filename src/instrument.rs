@@ -1,12 +1,13 @@
 use crate::error::{GpibError, IbError};
 use crate::lowlevel::multidevice;
-use crate::lowlevel::traditional::{ibdev, ibonl, ibrd, ibwait, ibwrt};
-use crate::lowlevel::utility::{Addr4882, AsyncIbcntl};
+use crate::lowlevel::traditional::{ibclr, ibdev, ibonl, ibrd, ibrda, ibwait, ibwrt, ibwrta};
+use crate::lowlevel::utility::Addr4882;
 use crate::status::IbStatus;
 use crate::types::{IbEosMode, IbOnline, IbSendEOI, IbTimeout, PrimaryAddress, SecondaryAddress};
+use crate::DEBUG;
 use std::default::Default;
 use std::fmt;
-use std::os::raw::{c_int, c_void};
+use std::os::raw::c_int;
 
 pub struct Parameters {
     pub timeout: IbTimeout,
@@ -24,7 +25,7 @@ impl Default for Parameters {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Board {
     board_number: c_int,
 }
@@ -41,12 +42,23 @@ pub struct InstrumentHandle {
 
 impl Board {
     pub fn with_board_number(board_number: c_int) -> Self {
-        Board { board_number }
+        Board {
+            board_number: board_number,
+        }
     }
 
     /// clear devices
-    pub fn clear_devices(&self, address_list: &Vec<Addr4882>) -> Result<(), GpibError> {
-        multidevice::DevClearList(self.board_number, address_list)
+    pub fn clear_devices(&self, instruments: &Vec<Instrument>) -> Result<(), GpibError> {
+        if instruments
+            .iter()
+            .any(|instr| instr.board.board_number != self.board_number)
+        {
+            return Err(GpibError::ValueError(
+                "clear_devices can only send to devices belonging to this board.".to_owned(),
+            ));
+        }
+        let address_list = instruments.iter().map(|instr| instr.addr).collect();
+        multidevice::DevClearList(self.board_number, &address_list)
     }
 
     /// perform interface clear.
@@ -70,17 +82,26 @@ impl Board {
     /// write data to multiple devices
     pub fn send_list(
         &self,
-        address_list: &Vec<Addr4882>,
+        instruments: &Vec<Instrument>,
         data: &[u8],
         mode: IbSendEOI,
     ) -> Result<(), GpibError> {
-        multidevice::SendList(self.board_number, address_list, data, mode)
+        if instruments
+            .iter()
+            .any(|instr| instr.board.board_number != self.board_number)
+        {
+            return Err(GpibError::ValueError(
+                "clear_devices can only send to devices belonging to this board.".to_owned(),
+            ));
+        }
+        let address_list = instruments.iter().map(|instr| instr.addr).collect();
+        multidevice::SendList(self.board_number, &address_list, data, mode)
     }
 }
 
 impl Default for Board {
     fn default() -> Self {
-        Board { board_number: 0 }
+        Board::with_board_number(0)
     }
 }
 
@@ -97,6 +118,41 @@ impl fmt::Debug for Board {
 }
 
 impl Instrument {
+    /// Send data to the instrument with the multidevice 488.2 API
+    pub fn send(&self, data: &[u8], mode: IbSendEOI) -> Result<(), GpibError> {
+        multidevice::Send(self.board.board_number, self.addr, data, mode)
+    }
+
+    /// Receive data from the instrument with the multidevice 488.2 API
+    pub fn receive(&self) -> Result<String, GpibError> {
+        const BUFFER_SIZE: usize = 1024;
+        let mut result: Vec<u8> = Vec::new();
+        loop {
+            let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
+            let (status, n_read) = multidevice::Receive(
+                self.board.board_number,
+                self.addr,
+                &mut buffer,
+                linux_gpib_sys::STOPend,
+            )?;
+            if n_read > 0 {
+                result.extend(buffer[0..n_read].to_vec());
+            }
+            if status.end || n_read < BUFFER_SIZE || n_read == 0 {
+                break;
+            }
+        }
+        let answer = String::from_utf8(result)?;
+        Ok(answer)
+    }
+
+    /// Performs send and receive
+    pub fn query(&self, data: &str) -> Result<String, GpibError> {
+        self.send(data.as_bytes(), IbSendEOI::default())?;
+        self.receive()
+    }
+
+    /// Create Instrument from a VISA string
     pub fn from_visa_string(address: &str) -> Result<Self, GpibError> {
         let v: Vec<&str> = address.split("::").collect();
         if v.len() < 2 {
@@ -120,7 +176,7 @@ impl Instrument {
                 ))
             })?;
             Ok(Self {
-                board: Board { board_number },
+                board: Board::with_board_number(board_number),
                 addr: Addr4882::new(
                     PrimaryAddress::new(primary_address)?,
                     SecondaryAddress::default(),
@@ -133,6 +189,7 @@ impl Instrument {
         }
     }
 
+    /// Create VISA string from board and address
     pub fn visa_string(&self) -> String {
         format!(
             "GPIB{}::{}::INSTR",
@@ -141,6 +198,7 @@ impl Instrument {
         )
     }
 
+    /// Open with the traditional 488.1 API
     pub fn open(&self, params: Parameters) -> Result<InstrumentHandle, GpibError> {
         let ud = ibdev(
             self.board.board_number,
@@ -150,6 +208,7 @@ impl Instrument {
             params.send_eoi,
             params.eos_mode,
         )?;
+        ibclr(ud)?;
         Ok(InstrumentHandle { ud })
     }
 }
@@ -190,20 +249,8 @@ impl InstrumentHandle {
         let mut result: Vec<u8> = Vec::new();
         loop {
             let mut buffer: [u8; BUFFER_SIZE] = [0; BUFFER_SIZE];
-            let status = IbStatus::from_ibsta(unsafe {
-                linux_gpib_sys::ibrda(
-                    self.ud,
-                    buffer.as_mut_ptr() as *mut c_void,
-                    buffer.len().try_into()?,
-                )
-            });
-            if status.err {
-                return Err(GpibError::DriverError(
-                    status,
-                    IbError::current_thread_local_error()?,
-                ));
-            }
-            let status = ibwait(
+            unsafe { ibrda(self.ud, &mut buffer) }?;
+            let (status, n_read) = ibwait(
                 self.ud,
                 IbStatus::default()
                     .with_timo(true)
@@ -211,10 +258,17 @@ impl InstrumentHandle {
                     .with_end(true),
             )
             .await?;
-            if status.timo {
+            if status.err {
+                return Err(GpibError::DriverError(
+                    status,
+                    IbError::current_thread_local_error()?,
+                ));
+            } else if status.timo {
                 return Err(GpibError::Timeout);
             }
-            let n_read: usize = AsyncIbcntl().try_into()?;
+            if DEBUG {
+                println!("read({}) -> {} bytes read.", self.ud, n_read);
+            }
             if n_read > 0 {
                 result.extend(buffer[0..n_read].to_vec());
             }
@@ -234,20 +288,8 @@ impl InstrumentHandle {
     #[cfg(feature = "async-tokio")]
     pub async fn write(&self, data: &str) -> Result<(), GpibError> {
         let data = data.as_bytes();
-        let status = IbStatus::from_ibsta(unsafe {
-            linux_gpib_sys::ibwrta(
-                self.ud,
-                data.as_ptr() as *const c_void,
-                data.len().try_into()?,
-            )
-        });
-        if status.err {
-            return Err(GpibError::DriverError(
-                status,
-                IbError::current_thread_local_error()?,
-            ));
-        }
-        let status = ibwait(
+        unsafe { ibwrta(self.ud, data) }?;
+        let (status, _count) = ibwait(
             self.ud,
             IbStatus::default()
                 .with_timo(true)
@@ -256,7 +298,12 @@ impl InstrumentHandle {
                 .with_rqs(true),
         )
         .await?;
-        if status.timo {
+        if status.err {
+            Err(GpibError::DriverError(
+                status,
+                IbError::current_thread_local_error()?,
+            ))
+        } else if status.timo {
             Err(GpibError::Timeout)
         } else if status.cmpl || status.end {
             Ok(())

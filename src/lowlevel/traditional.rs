@@ -1,14 +1,14 @@
 use crate::error::{GpibError, IbError};
+use crate::lowlevel::utility::AsyncIbcntl;
 use crate::status::IbStatus;
 use crate::types::{
     IbEosMode, IbEvent, IbLineStatus, IbOnline, IbOption, IbSendEOI, IbTimeout, PrimaryAddress,
     SecondaryAddress,
 };
+use crate::DEBUG;
 use std::ffi::{CStr, CString};
 use std::os::raw::{c_char, c_int, c_short, c_void};
 use std::path::Path;
-
-const DEBUG: bool = false;
 
 /// ibask -- query configuration (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibask.html)
@@ -19,7 +19,10 @@ pub fn ibask(ud: c_int, option: IbOption) -> Result<c_int, GpibError> {
         linux_gpib_sys::ibask(ud, option, &mut result as *mut c_int)
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(result)
     }
@@ -32,7 +35,10 @@ pub fn ibbna(ud: c_int, name: &str) -> Result<(), GpibError> {
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibbna(ud, name.as_ptr() as *mut c_char) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -43,7 +49,10 @@ pub fn ibbna(ud: c_int, name: &str) -> Result<(), GpibError> {
 pub fn ibcac(ud: c_int, synchronous: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibcac(ud, synchronous) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -57,10 +66,13 @@ pub fn ibclr(ud: c_int) -> Result<(), GpibError> {
     }
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibclr(ud) });
     if DEBUG {
-        println!("-> {:?}", status);
+        println!("ibclr({}) -> {:?}", ud, status);
     }
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -77,7 +89,10 @@ pub fn ibcmd(ud: c_int, commands: &[u8]) -> Result<(), GpibError> {
         )
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -89,13 +104,16 @@ pub fn ibconfig(ud: c_int, option: IbOption, setting: c_int) -> Result<(), GpibE
     let option = option.as_option();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibconfig(ud, option, setting) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
 }
 
-/// ibdev -- open a device (device)
+/// open a device (device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibdev.html)
 pub fn ibdev(
     board_index: c_int,
@@ -105,12 +123,6 @@ pub fn ibdev(
     send_eoi: IbSendEOI,
     eos: IbEosMode,
 ) -> Result<c_int, GpibError> {
-    if DEBUG {
-        println!(
-            "ibdev({}, {}, {}, {}, {}, {}",
-            board_index, primary_address, secondary_address, timeout, send_eoi, eos
-        );
-    }
     let ud = unsafe {
         linux_gpib_sys::ibdev(
             board_index,
@@ -122,14 +134,17 @@ pub fn ibdev(
         )
     };
     if DEBUG {
-        println!("-> {}", ud);
+        println!(
+            "ibdev({}, {}, {}, {}, {}, {}) -> {}",
+            board_index, primary_address, secondary_address, timeout, send_eoi, eos, ud
+        );
     }
     if ud >= 0 {
         Ok(ud)
     } else {
         Err(GpibError::DriverError(
-            IbStatus::current_status(),
-            IbError::current_error()?,
+            IbStatus::current_thread_local_status(),
+            IbError::current_thread_local_error()?,
         ))
     }
 }
@@ -140,7 +155,10 @@ pub fn ibeos(ud: c_int, eosmod: IbEosMode) -> Result<(), GpibError> {
     let eosmod = eosmod.as_mode();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeos(ud, eosmod) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -151,7 +169,10 @@ pub fn ibeos(ud: c_int, eosmod: IbEosMode) -> Result<(), GpibError> {
 pub fn ibeot(ud: c_int, send_eoi: IbSendEOI) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibeot(ud, send_eoi.as_eot()) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -165,7 +186,10 @@ pub fn ibevent(ud: c_int) -> Result<IbEvent, GpibError> {
         linux_gpib_sys::ibevent(ud, &mut event_value as *mut c_short)
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(IbEvent::from_value(event_value)?)
     }
@@ -180,8 +204,8 @@ pub fn ibfind(name: &str) -> Result<c_int, GpibError> {
         Ok(ud)
     } else {
         Err(GpibError::DriverError(
-            IbStatus::current_status(),
-            IbError::current_error()?,
+            IbStatus::current_thread_local_status(),
+            IbError::current_thread_local_error()?,
         ))
     }
 }
@@ -191,7 +215,10 @@ pub fn ibfind(name: &str) -> Result<c_int, GpibError> {
 pub fn ibgts(ud: c_int, shadow_handshake: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibgts(ud, shadow_handshake) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -202,7 +229,10 @@ pub fn ibgts(ud: c_int, shadow_handshake: c_int) -> Result<(), GpibError> {
 pub fn ibist(ud: c_int, ist: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibist(ud, ist) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -216,7 +246,10 @@ pub fn iblines(ud: c_int) -> Result<IbLineStatus, GpibError> {
         linux_gpib_sys::iblines(ud, &mut line_status as *mut c_short)
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(IbLineStatus::from_line_status(line_status))
     }
@@ -239,7 +272,10 @@ pub fn ibln(
         )
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(found_listener != 0)
     }
@@ -250,7 +286,10 @@ pub fn ibln(
 pub fn ibloc(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibloc(ud) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -265,10 +304,13 @@ pub fn ibonl(ud: c_int, online: IbOnline) -> Result<(), GpibError> {
     let online = online.as_online();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibonl(ud, online) });
     if DEBUG {
-        println!("-> {:?}", status);
+        println!("ibonl({}, {}) -> {:?}", ud, online, status);
     }
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -280,7 +322,10 @@ pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpad(ud, primary_address.as_pad()) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -291,7 +336,10 @@ pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError
 pub fn ibpct(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpct(ud) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -302,18 +350,18 @@ pub fn ibpct(ud: c_int) -> Result<(), GpibError> {
 pub fn ibppc(ud: c_int, configuration: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibppc(ud, configuration) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
 }
 
-/// ibrd -- read data bytes (board or device)
+/// read data bytes (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrd.html)
 pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<(IbStatus, usize), GpibError> {
-    if DEBUG {
-        println!("ibrd({}, count = {})", ud, buffer.len());
-    }
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibrd(
             ud,
@@ -322,10 +370,13 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<(IbStatus, usize), GpibError
         )
     });
     if DEBUG {
-        println!("-> {:?}", status);
+        println!("ibrd({}, count = {}) -> {:?}", ud, buffer.len(), status);
     }
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         let bytes_read = unsafe { linux_gpib_sys::ibcntl };
         if bytes_read > buffer.len().try_into()? {
@@ -343,7 +394,32 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<(IbStatus, usize), GpibError
     }
 }
 
-/// ibrdf -- read data bytes to file (board or device)
+/// read data bytes asynchronously (board or device)
+///
+/// This function is unsafe because Rust will not be able to check the lifetime
+/// of buffer. It needs to remain available until the asynchronous read completes.
+pub unsafe fn ibrda(ud: c_int, buffer: &mut [u8]) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe {
+        linux_gpib_sys::ibrda(
+            ud,
+            buffer.as_mut_ptr() as *mut c_void,
+            buffer.len().try_into()?,
+        )
+    });
+    if DEBUG {
+        println!("ibrda({}) -> {:?}", ud, status);
+    }
+    if status.err {
+        return Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ));
+    } else {
+        Ok(())
+    }
+}
+
+/// read data bytes to file (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrdf.html)
 pub fn ibrdf(ud: c_int, file_path: &Path) -> Result<(), GpibError> {
     let file_path = CString::new(file_path.to_str().ok_or(GpibError::ValueError(format!(
@@ -352,13 +428,16 @@ pub fn ibrdf(ud: c_int, file_path: &Path) -> Result<(), GpibError> {
     )))?)?;
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrdf(ud, file_path.as_ptr()) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
 }
 
-/// ibrpp -- perform a parallel poll (board or device)
+/// perform a parallel poll (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibrpp.html)
 pub fn ibrpp(ud: c_int) -> Result<c_char, GpibError> {
     let mut ppoll_result: c_char = 0;
@@ -366,7 +445,10 @@ pub fn ibrpp(ud: c_int) -> Result<c_char, GpibError> {
         linux_gpib_sys::ibrpp(ud, &mut ppoll_result as *mut c_char)
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(ppoll_result)
     }
@@ -377,7 +459,10 @@ pub fn ibrpp(ud: c_int) -> Result<c_char, GpibError> {
 pub fn ibrsc(ud: c_int, request_control: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrsc(ud, request_control) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -390,7 +475,10 @@ pub fn ibrsp(ud: c_int) -> Result<c_char, GpibError> {
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrsp(ud, &mut result as *mut c_char) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(result)
     }
@@ -401,7 +489,10 @@ pub fn ibrsp(ud: c_int) -> Result<c_char, GpibError> {
 pub fn ibrsv(ud: c_int, status_byte: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibrsv(ud, status_byte) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -418,7 +509,10 @@ pub fn ibrsv2(
         linux_gpib_sys::ibrsv2(ud, status_byte, new_reason_for_request)
     });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -430,7 +524,10 @@ pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibE
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsad(ud, secondary_address.as_sad()) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -441,7 +538,10 @@ pub fn ibsad(ud: c_int, secondary_address: SecondaryAddress) -> Result<(), GpibE
 pub fn ibsic(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsic(ud) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -454,7 +554,10 @@ pub fn ibspb(ud: c_int) -> Result<c_short, GpibError> {
     let status =
         IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibspb(ud, &mut result as *mut c_short) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(result)
     }
@@ -465,7 +568,10 @@ pub fn ibspb(ud: c_int) -> Result<c_short, GpibError> {
 pub fn ibsre(ud: c_int, enable: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibsre(ud, enable) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -476,7 +582,10 @@ pub fn ibsre(ud: c_int, enable: c_int) -> Result<(), GpibError> {
 pub fn ibstop(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibstop(ud) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -488,7 +597,10 @@ pub fn ibtmo(ud: c_int, timeout: IbTimeout) -> Result<(), GpibError> {
     let timeout = timeout.as_timeout();
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibtmo(ud, timeout) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -499,7 +611,10 @@ pub fn ibtmo(ud: c_int, timeout: IbTimeout) -> Result<(), GpibError> {
 pub fn ibtrg(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibtrg(ud) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(())
     }
@@ -514,27 +629,24 @@ pub fn ibvers() -> Result<String, GpibError> {
 }
 
 #[cfg(feature = "async-tokio")]
-/// ibwait -- wait for event (board or device)
+/// wait for event (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwait.html)
-pub async fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<IbStatus, GpibError> {
-    if DEBUG {
-        println!("ibwait({}, {})", ud, status_mask);
-    }
+pub async fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<(IbStatus, usize), GpibError> {
     let status_mask = status_mask.as_ibsta();
     let res = tokio::task::spawn_blocking(move || {
         let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibwait(ud, status_mask) });
         if status.err {
             Err(GpibError::DriverError(
                 status,
-                IbError::current_thread_local_error()?,
+                IbError::current_async_local_error()?,
             ))
         } else {
-            Ok(status)
+            Ok((status, AsyncIbcntl().try_into()?))
         }
     })
     .await?;
     if DEBUG {
-        println!("-> {:?}", res);
+        println!("ibwait({}, {}) -> {:?}", ud, status_mask, res);
     }
     res
 }
@@ -542,19 +654,44 @@ pub async fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<IbStatus, GpibEr
 /// ibwrt -- write data bytes (board or device)
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibwrt.html)
 pub fn ibwrt(ud: c_int, data: &[u8]) -> Result<usize, GpibError> {
-    if DEBUG {
-        println!("ibwrt({}, {:?})", ud, String::from_utf8(data.to_vec())?);
-    }
     let status = IbStatus::from_ibsta(unsafe {
         linux_gpib_sys::ibwrt(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
     });
     if DEBUG {
-        println!("-> {:?}", status);
+        println!(
+            "ibwrt({}, {:?}) -> {:?}",
+            ud,
+            String::from_utf8(data.to_vec())?,
+            status
+        );
     }
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(unsafe { linux_gpib_sys::ibcntl }.try_into()?)
+    }
+}
+
+/// write data bytes asynchronously (board or device)
+///
+/// Unsafe because the lifetime of buffer is not checked.
+pub unsafe fn ibwrta(ud: c_int, data: &[u8]) -> Result<(), GpibError> {
+    let status = IbStatus::from_ibsta(unsafe {
+        linux_gpib_sys::ibwrta(ud, data.as_ptr() as *const c_void, data.len().try_into()?)
+    });
+    if DEBUG {
+        println!("ibwrta({}, {:?}) -> {:?}", ud, data, status);
+    }
+    if status.err {
+        return Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ));
+    } else {
+        Ok(())
     }
 }
 
@@ -567,7 +704,10 @@ pub fn ibwrtf(ud: c_int, file_path: &Path) -> Result<usize, GpibError> {
     )))?)?;
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibwrtf(ud, file_path.as_ptr()) });
     if status.err {
-        Err(GpibError::DriverError(status, IbError::current_error()?))
+        Err(GpibError::DriverError(
+            status,
+            IbError::current_thread_local_error()?,
+        ))
     } else {
         Ok(unsafe { linux_gpib_sys::ibcntl }.try_into()?)
     }

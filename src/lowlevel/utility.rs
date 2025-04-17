@@ -54,6 +54,26 @@ pub fn ThreadIbsta() -> c_int {
     unsafe { linux_gpib_sys::ThreadIbsta() }
 }
 
+/// iberr value for last asynchronous I/O operation
+///
+/// AsyncIberr() returns a thread-local error number related to the global variable iberr. Its value corresponds to the result of the last asynchronous I/O operation resynchronized to the current thread by an ibwait or ibstop call. This function only reflects the result of the asynchronous I/O operation itself and not, for example, the ibwait which resynchronized the asynchronous result to the current thread. Thus the result from AsyncIberr() is easier to interpret than ThreadIberr(), since it is unambiguous whether the value is associated with the asynchronous I/O result, or with the function call used to resynchronize (ibwait or ibstop).
+///
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-async-iberr.html)
+pub fn AsyncIberr() -> c_int {
+    unsafe { linux_gpib_sys::AsyncIberr() }
+}
+
+/// ibsta value for last asynchronous I/O operation
+///
+/// AsyncIbsta() returns a thread-local status value related to the global variable ibsta. Its value corresponds to the result of the last asynchronous I/O operation resynchronized to the current thread by an ibwait or ibstop call. This function only reflects the result of the asynchronous I/O operation itself and not, for example, the ibwait which resynchronized the asynchronous result to the current thread. Thus the result from AsyncIbsta() is easier to interpret than ThreadIbsta(), since it is unambiguous whether the value is associated with the asynchronous I/O result, or with the function call used to resynchronize (ibwait or ibstop).
+///
+/// Only the status bits END | ERR | TIMO | CMPL are valid in the returned status byte. The rest of the bits should be ignored and will be set to zero.
+///
+/// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-async-ibsta.html)
+pub fn AsyncIbsta() -> c_int {
+    unsafe { linux_gpib_sys::AsyncIbsta() }
+}
+
 #[derive(Clone, Copy)]
 pub struct Addr4882 {
     pub addr: linux_gpib_sys::Addr4882_t,

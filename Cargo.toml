@@ -11,17 +11,12 @@ readme = "README.md"
 keywords = ["control", "gpib", "instrument"]
 categories = ["api-bindings"]
 
-[package.metadata.docs.rs]
-features = ["async-tokio"]
-no-default-features = true
-
 [features]
-default = ["bindgen", "async-tokio"]
+default = ["async-tokio"]
 async-tokio = ["dep:tokio"]
-bindgen = ["linux-gpib-sys/bindgen"]
 
 [dependencies]
-linux-gpib-sys = { version = "^0.1.2", default-features = false }
+linux-gpib-sys = "0.1.3"
 tokio = { version = "1", features = ["full"], optional = true }
 
 [lib]

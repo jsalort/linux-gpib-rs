@@ -226,7 +226,7 @@ impl fmt::Debug for Instrument {
 }
 
 impl InstrumentHandle {
-    pub fn blocking_read(&self) -> Result<String, GpibError> {
+    pub fn blocking_read_raw(&self) -> Result<Vec<u8>, GpibError> {
         const BUFFER_SIZE: usize = 1024;
         let mut result: Vec<u8> = Vec::new();
         loop {
@@ -239,12 +239,17 @@ impl InstrumentHandle {
                 break;
             }
         }
+        Ok(result)
+    }
+
+    pub fn blocking_read(&self) -> Result<String, GpibError> {
+        let result = self.blocking_read_raw()?;
         let answer = String::from_utf8(result)?;
         Ok(answer)
     }
 
     #[cfg(feature = "async-tokio")]
-    pub async fn read(&self) -> Result<String, GpibError> {
+    pub async fn read_raw(&self) -> Result<Vec<u8>, GpibError> {
         const BUFFER_SIZE: usize = 1024;
         let mut result: Vec<u8> = Vec::new();
         loop {
@@ -276,6 +281,12 @@ impl InstrumentHandle {
                 break;
             }
         }
+        Ok(result)
+    }
+
+    #[cfg(feature = "async-tokio")]
+    pub async fn read(&self) -> Result<String, GpibError> {
+        let result = self.read_raw().await?;
         let answer = String::from_utf8(result)?;
         Ok(answer)
     }

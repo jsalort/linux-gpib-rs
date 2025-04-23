@@ -3,7 +3,6 @@ use crate::error::{GpibError, IbError};
 use crate::lowlevel::utility::{Addr4882, ThreadIbcnt, ThreadIbcntl};
 use crate::status::IbStatus;
 use crate::types::{IbSendEOI, PrimaryAddress, SecondaryAddress};
-use crate::DEBUG;
 use linux_gpib_sys::Addr4882_t;
 use std::default::Default;
 use std::os::raw::{c_int, c_short, c_void};
@@ -26,9 +25,7 @@ pub fn FindLstn(board_desc: c_int, padList: Vec<Addr4882>) -> Result<Vec<Addr488
         .map(|a| a.addr)
         .collect::<Vec<Addr4882_t>>();
     padList.push(linux_gpib_sys::NOADDR);
-    if DEBUG {
-        println!("FindLstn({}, {:?})", board_desc, padList);
-    }
+    log::debug!("FindLstn({}, {:?})", board_desc, padList);
     unsafe {
         linux_gpib_sys::FindLstn(
             board_desc,
@@ -42,29 +39,25 @@ pub fn FindLstn(board_desc: c_int, padList: Vec<Addr4882>) -> Result<Vec<Addr488
         let error = IbError::current_thread_local_error()?;
         match error {
             IbError::EARG => {
-                eprintln!(
+                log::error!(
                     "Invalid primary address at index {} in padlist",
                     ThreadIbcnt()
                 );
             }
             IbError::EBUS => {
-                eprintln!("No devices are connected to the GPIB.");
+                log::error!("No devices are connected to the GPIB.");
             }
             IbError::ETAB => {
-                eprintln!("The number of devices found on the GPIB exceed limit.");
+                log::error!("The number of devices found on the GPIB exceed limit.");
             }
             _ => {}
         }
-        if DEBUG {
-            println!("-> {:?}", error);
-        }
+        log::debug!("-> {:?}", error);
         Err(GpibError::DriverError(status, error))
     } else {
         let n_values: usize = ThreadIbcntl().try_into()?;
         result.truncate(n_values);
-        if DEBUG {
-            println!("-> {:?}", result);
-        }
+        log::debug!("-> {:?}", result);
         Ok(result.into_iter().map(|a| Addr4882 { addr: a }).collect())
     }
 }
@@ -82,25 +75,19 @@ pub fn FindAllLstn(board_desc: c_int) -> Result<Vec<Addr4882>, GpibError> {
 ///
 /// DevClear() causes the interface board specified by board_desc to send the clear command to the GPIB addresses specified by address. The results of the serial polls are stored into resultList. If you wish to clear multiple devices simultaneously, use DevClearList()
 pub fn DevClear(board: c_int, address: Addr4882) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("DevClear({}, {})", board, address);
-    }
+    log::debug!("DevClear({}, {})", board, address);
     unsafe {
         linux_gpib_sys::DevClear(board, address.addr);
     }
     let status = IbStatus::current_thread_local_status();
     if status.err {
-        if DEBUG {
-            println!("-> {:?}", status);
-        }
+        log::debug!("-> {:?}", status);
         Err(GpibError::DriverError(
             status,
             IbError::current_thread_local_error()?,
         ))
     } else {
-        if DEBUG {
-            println!("-> {:?}", status);
-        }
+        log::debug!("-> {:?}", status);
         Ok(())
     }
 }
@@ -114,16 +101,12 @@ pub fn DevClearList(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibE
         .map(|a| a.addr)
         .collect::<Vec<Addr4882_t>>();
     instruments.push(linux_gpib_sys::NOADDR);
-    if DEBUG {
-        println!("DevClearList({:?}, {:?})", board, addresses);
-    }
+    log::debug!("DevClearList({:?}, {:?})", board, addresses);
     unsafe {
         linux_gpib_sys::DevClearList(board, instruments.as_ptr());
     }
     let status = IbStatus::current_thread_local_status();
-    if DEBUG {
-        println!("-> {:?}", status);
-    }
+    log::debug!("-> {:?}", status);
     if status.err {
         Err(GpibError::DriverError(
             status,
@@ -369,9 +352,7 @@ pub fn Receive(
     buffer: &mut [u8],
     termination: c_int,
 ) -> Result<(IbStatus, usize), GpibError> {
-    if DEBUG {
-        println!("Receive({:?}, {:?})", board, address);
-    }
+    log::debug!("Receive({:?}, {:?})", board, address);
     unsafe {
         linux_gpib_sys::Receive(
             board,
@@ -383,21 +364,19 @@ pub fn Receive(
     }
     let status = IbStatus::current_thread_local_status();
     if status.err {
-        if DEBUG {
-            println!("-> {:?}", status);
-        }
+        log::debug!("-> {:?}", status);
         Err(GpibError::DriverError(
             status,
             IbError::current_thread_local_error()?,
         ))
     } else {
         let n_read = ThreadIbcntl().try_into()?;
-        if DEBUG {
-            println!(
-                "Receive({:?}, {:?}) -> Read {} bytes",
-                board, address, n_read
-            );
-        }
+        log::debug!(
+            "Receive({:?}, {:?}) -> Read {} bytes",
+            board,
+            address,
+            n_read
+        );
         Ok((status, n_read))
     }
 }
@@ -465,9 +444,7 @@ pub fn Send(
     buffer: &[u8],
     eot_mode: IbSendEOI,
 ) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("Send({:?}, {:?}, {:?})", board, address, buffer);
-    }
+    log::debug!("Send({:?}, {:?}, {:?})", board, address, buffer);
     unsafe {
         linux_gpib_sys::Send(
             board,
@@ -478,12 +455,13 @@ pub fn Send(
         );
     }
     let status = IbStatus::current_thread_local_status();
-    if DEBUG {
-        println!(
-            "Send({:?}, {:?}, {:?}) -> {:?}",
-            board, address, buffer, status
-        );
-    }
+    log::debug!(
+        "Send({:?}, {:?}, {:?}) -> {:?}",
+        board,
+        address,
+        buffer,
+        status
+    );
     if status.err {
         Err(GpibError::DriverError(
             status,
@@ -498,16 +476,12 @@ pub fn Send(
 ///
 /// SendIFC() resets the GPIB bus by asserting the 'interface clear' (IFC) bus line for a duration of at least 100 microseconds. The board specified by board_desc must be the system controller in order to assert IFC. The interface clear causes all devices to untalk and unlisten, puts them into serial poll disabled state (don't worry, you will still be able to conduct serial polls), and the board becomes controller-in-charge.
 pub fn SendIFC(board: c_int) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("SendIFC({})", board);
-    }
+    log::debug!("SendIFC({})", board);
     unsafe {
         linux_gpib_sys::SendIFC(board);
     }
     let status = IbStatus::current_thread_local_status();
-    if DEBUG {
-        println!("endIFC({}) -> {:?}", board, status);
-    }
+    log::debug!("endIFC({}) -> {:?}", board, status);
     if status.err {
         Err(GpibError::DriverError(
             status,
@@ -527,9 +501,7 @@ pub fn SendList(
     buffer: &[u8],
     eot_mode: IbSendEOI,
 ) -> Result<(), GpibError> {
-    if DEBUG {
-        println!("SendList({:?}, {:?}, {:?})", board, addresses, buffer);
-    }
+    log::debug!("SendList({:?}, {:?}, {:?})", board, addresses, buffer);
     let mut instruments = addresses
         .iter()
         .map(|a| a.addr)
@@ -545,12 +517,13 @@ pub fn SendList(
         );
     }
     let status = IbStatus::current_thread_local_status();
-    if DEBUG {
-        println!(
-            "SendList({:?}, {:?}, {:?}) -> {:?}",
-            board, addresses, buffer, status
-        );
-    }
+    log::debug!(
+        "SendList({:?}, {:?}, {:?}) -> {:?}",
+        board,
+        addresses,
+        buffer,
+        status
+    );
     if status.err {
         Err(GpibError::DriverError(
             status,

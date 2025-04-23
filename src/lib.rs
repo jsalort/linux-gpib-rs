@@ -76,5 +76,3 @@ pub mod instrument;
 pub mod lowlevel;
 pub mod status;
 pub mod types;
-
-const DEBUG: bool = false;

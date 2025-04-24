@@ -1,6 +1,7 @@
 use crate::error::GpibError;
 use std::fmt;
 use std::os::raw::{c_int, c_short};
+use std::time::Duration;
 
 pub enum IbOption {
     PAD,
@@ -508,7 +509,7 @@ impl IbTimeout {
         log::warn!(
             "It is not possible to set a timeout larger than 1000s. There will be no timeout."
         );
-        IbTimeout::TNone;
+        IbTimeout::TNone
     }
 }
 

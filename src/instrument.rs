@@ -1,12 +1,15 @@
 use crate::error::{GpibError, IbError};
 use crate::lowlevel::multidevice;
-use crate::lowlevel::traditional::{ibclr, ibdev, ibonl, ibrd, ibrda, ibwait, ibwrt, ibwrta};
+use crate::lowlevel::traditional::{
+    ibclr, ibdev, ibonl, ibrd, ibrda, ibtmo, ibwait, ibwrt, ibwrta,
+};
 use crate::lowlevel::utility::Addr4882;
 use crate::status::IbStatus;
 use crate::types::{IbEosMode, IbOnline, IbSendEOI, IbTimeout, PrimaryAddress, SecondaryAddress};
 use std::default::Default;
 use std::fmt;
 use std::os::raw::c_int;
+use std::time::Duration;
 
 pub struct Parameters {
     pub timeout: IbTimeout,
@@ -342,7 +345,7 @@ impl InstrumentHandle {
     /// Sets the timeout to the closest possible value
     pub fn set_timeout(&self, timeout: Duration) -> Result<(), GpibError> {
         let tmo = IbTimeout::closest_from(timeout);
-        ibtmo(self.ud, timeout)
+        ibtmo(self.ud, tmo)
     }
 }
 

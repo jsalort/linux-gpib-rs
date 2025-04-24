@@ -67,6 +67,8 @@ async fn asynchronous_bis() -> Result<(), GpibError> {
 
 #[tokio::main]
 async fn main() {
+    env_logger::init();
+
     println!("*** lowlevel_query ***");
     lowlevel_query().unwrap();
 

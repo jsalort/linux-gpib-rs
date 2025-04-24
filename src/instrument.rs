@@ -4,7 +4,6 @@ use crate::lowlevel::traditional::{ibclr, ibdev, ibonl, ibrd, ibrda, ibwait, ibw
 use crate::lowlevel::utility::Addr4882;
 use crate::status::IbStatus;
 use crate::types::{IbEosMode, IbOnline, IbSendEOI, IbTimeout, PrimaryAddress, SecondaryAddress};
-use crate::DEBUG;
 use std::default::Default;
 use std::fmt;
 use std::os::raw::c_int;
@@ -271,9 +270,7 @@ impl InstrumentHandle {
             } else if status.timo {
                 return Err(GpibError::Timeout);
             }
-            if DEBUG {
-                println!("read({}) -> {} bytes read.", self.ud, n_read);
-            }
+            log::debug!("read({}) -> {} bytes read.", self.ud, n_read);
             if n_read > 0 {
                 result.extend(buffer[0..n_read].to_vec());
             }

@@ -456,6 +456,60 @@ impl IbTimeout {
             IbTimeout::T1000s => 17,
         }
     }
+
+    pub(crate) fn as_duration(&self) -> Duration {
+        match self {
+            IbTimeout::TNone => Duration::MAX,
+            IbTimeout::T10us => Duration::from_micros(10),
+            IbTimeout::T30us => Duration::from_micros(30),
+            IbTimeout::T100us => Duration::from_micros(100),
+            IbTimeout::T300us => Duration::from_micros(300),
+            IbTimeout::T1ms => Duration::from_millis(1),
+            IbTimeout::T3ms => Duration::from_millis(3),
+            IbTimeout::T10ms => Duration::from_millis(10),
+            IbTimeout::T30ms => Duration::from_millis(30),
+            IbTimeout::T100ms => Duration::from_millis(100),
+            IbTimeout::T300ms => Duration::from_millis(300),
+            IbTimeout::T1s => Duration::from_secs(1),
+            IbTimeout::T3s => Duration::from_secs(3),
+            IbTimeout::T10s => Duration::from_secs(10),
+            IbTimeout::T30s => Duration::from_secs(30),
+            IbTimeout::T100s => Duration::from_secs(100),
+            IbTimeout::T300s => Duration::from_secs(300),
+            IbTimeout::T1000s => Duration::from_secs(1000),
+        }
+    }
+
+    /// Returns the smallest timeout value larger or equal to provided value
+    pub fn closest_from(timeout: Duration) -> Self {
+        for tmo in [
+            IbTimeout::T10us,
+            IbTimeout::T30us,
+            IbTimeout::T100us,
+            IbTimeout::T300us,
+            IbTimeout::T1ms,
+            IbTimeout::T3ms,
+            IbTimeout::T10ms,
+            IbTimeout::T30ms,
+            IbTimeout::T100ms,
+            IbTimeout::T300ms,
+            IbTimeout::T1s,
+            IbTimeout::T3s,
+            IbTimeout::T10s,
+            IbTimeout::T30s,
+            IbTimeout::T100s,
+            IbTimeout::T300s,
+            IbTimeout::T1000s,
+        ] {
+            if tmo.as_duration() >= timeout {
+                return tmo;
+            }
+        }
+        log::warn!(
+            "It is not possible to set a timeout larger than 1000s. There will be no timeout."
+        );
+        IbTimeout::TNone;
+    }
 }
 
 #[derive(Copy, Clone)]

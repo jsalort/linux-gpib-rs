@@ -1,6 +1,6 @@
 [package]
 name = "linux-gpib-rs"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Julien Salort <julien.salort@ens-lyon.fr>"]
 edition = "2024"
 license-file = "LICENSE.txt"

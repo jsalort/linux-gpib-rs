@@ -333,6 +333,17 @@ impl InstrumentHandle {
         self.write(data).await?;
         self.read().await
     }
+
+    /// Clears the interface
+    pub fn clear(&self) -> Result<(), GpibError> {
+        ibclr(self.ud)
+    }
+
+    /// Sets the timeout to the closest possible value
+    pub fn set_timeout(&self, timeout: Duration) -> Result<(), GpibError> {
+        let tmo = IbTimeout::closest_from(timeout);
+        ibtmo(self.ud, timeout)
+    }
 }
 
 impl Drop for InstrumentHandle {

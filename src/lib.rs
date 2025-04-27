@@ -1,8 +1,7 @@
 //!
-//! Low-level wrapper for Linux GPIB.
+//! Wrapper for Linux GPIB.
 //!
 //! Documentation for the functions comes from [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference.html).
-//! At the moment, only the 'Traditional' API Functions are wrapped.
 //!
 //! ## Requirements
 //!

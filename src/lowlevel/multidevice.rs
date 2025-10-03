@@ -1,11 +1,16 @@
 #![allow(non_snake_case)]
 use crate::error::{GpibError, IbError};
-use crate::lowlevel::utility::{Addr4882, ThreadIbcnt, ThreadIbcntl};
+use crate::lowlevel::utility::Addr4882;
+#[cfg(feature = "linuxgpib")]
+use crate::lowlevel::utility::{ThreadIbcnt, ThreadIbcntl};
+#[cfg(feature = "nigpib")]
+use crate::lowlevel::utility::Ibcnt;
+
 use crate::status::IbStatus;
 use crate::types::{IbSendEOI, PrimaryAddress, SecondaryAddress};
 use linux_gpib_sys::Addr4882_t;
 use std::default::Default;
-use std::os::raw::{c_int, c_short, c_void};
+use std::os::raw::{c_int, c_uint, c_short, c_void};
 
 /// find devices
 ///
@@ -34,14 +39,29 @@ pub fn FindLstn(board_desc: c_int, padList: Vec<Addr4882>) -> Result<Vec<Addr488
             padList.len().try_into()?,
         )
     };
+
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
+
     if status.err {
+        #[cfg(feature = "linuxgpib")]
         let error = IbError::current_thread_local_error()?;
+        #[cfg(feature = "nigpib")]
+        let error = unsafe { IbError::current_global_error() }?;
+
         match error {
             IbError::EARG => {
+                #[cfg(feature = "linuxgpib")]
                 log::error!(
                     "Invalid primary address at index {} in padlist",
-                    ThreadIbcnt()
+                    ThreadIbcnt(),
+                );
+                #[cfg(feature = "nigpib")]
+                log::error!(
+                    "Invalid primary address at index {} in padlist",
+                    Ibcnt(),
                 );
             }
             IbError::EBUS => {
@@ -55,7 +75,11 @@ pub fn FindLstn(board_desc: c_int, padList: Vec<Addr4882>) -> Result<Vec<Addr488
         log::debug!("-> {:?}", error);
         Err(GpibError::DriverError(status, error))
     } else {
+        #[cfg(feature = "linuxgpib")]
         let n_values: usize = ThreadIbcntl().try_into()?;
+        #[cfg(feature = "nigpib")]
+        let n_values: usize = Ibcnt().try_into()?;
+
         result.truncate(n_values);
         log::debug!("-> {:?}", result);
         Ok(result.into_iter().map(|a| Addr4882 { addr: a }).collect())
@@ -79,12 +103,18 @@ pub fn DevClear(board: c_int, address: Addr4882) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::DevClear(board, address.addr);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         log::debug!("-> {:?}", status);
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         log::debug!("-> {:?}", status);
@@ -105,12 +135,18 @@ pub fn DevClearList(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibE
     unsafe {
         linux_gpib_sys::DevClearList(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     log::debug!("-> {:?}", status);
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -133,11 +169,17 @@ pub fn EnableLocal(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibEr
     unsafe {
         linux_gpib_sys::EnableLocal(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -158,11 +200,17 @@ pub fn EnableRemote(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibE
     unsafe {
         linux_gpib_sys::EnableRemote(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -184,14 +232,23 @@ pub fn FindRQS(board: c_int, addresses: &Vec<Addr4882>) -> Result<(Addr4882, c_s
     unsafe {
         linux_gpib_sys::FindRQS(board, instruments.as_ptr(), &mut status_byte);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
+        #[cfg(feature = "linuxgpib")]
         let index: usize = ThreadIbcnt().try_into()?;
+        #[cfg(feature = "nigpib")]
+        let index: usize = Ibcnt().try_into()?;
         if index >= addresses.len() {
             Err(GpibError::ValueError(
                 "index stored in Ibcnt is larger than addresses array length".to_owned(),
@@ -211,11 +268,17 @@ pub fn PassControl(board: c_int, address: Addr4882) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::PassControl(board, address.addr);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -232,11 +295,17 @@ pub fn PPoll(board: c_int) -> Result<c_short, GpibError> {
     unsafe {
         linux_gpib_sys::PPoll(board, &mut result);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(result)
@@ -257,11 +326,17 @@ pub fn PPollConfig(
     unsafe {
         linux_gpib_sys::PPollConfig(board, address.addr, dio_line, line_sense);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -280,11 +355,17 @@ pub fn PPollUnconfig(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), Gpib
     unsafe {
         linux_gpib_sys::PPollUnconfig(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -309,11 +390,17 @@ pub fn RcvRespMsg(board: c_int, buffer: &mut [u8], termination: c_int) -> Result
             termination,
         );
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -330,11 +417,17 @@ pub fn ReadStatusByte(board: c_int, address: Addr4882) -> Result<c_short, GpibEr
     unsafe {
         linux_gpib_sys::ReadStatusByte(board, address.addr, &mut result);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(result)
@@ -362,15 +455,24 @@ pub fn Receive(
             termination,
         );
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         log::debug!("-> {:?}", status);
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
+        #[cfg(feature = "linuxgpib")]
         let n_read = ThreadIbcntl().try_into()?;
+        #[cfg(feature = "nigpib")]
+        let n_read = Ibcnt().try_into()?;
         log::debug!(
             "Receive({:?}, {:?}) -> Read {} bytes",
             board,
@@ -392,11 +494,17 @@ pub fn ReceiveSetup(board: c_int, address: Addr4882) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::ReceiveSetup(board, address.addr);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -422,11 +530,17 @@ pub fn ResetSys(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibError
     unsafe {
         linux_gpib_sys::ResetSys(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -454,7 +568,10 @@ pub fn Send(
             eot_mode.as_eot(),
         );
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     log::debug!(
         "Send({:?}, {:?}, {:?}) -> {:?}",
         board,
@@ -465,7 +582,10 @@ pub fn Send(
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -480,12 +600,18 @@ pub fn SendIFC(board: c_int) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::SendIFC(board);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     log::debug!("endIFC({}) -> {:?}", board, status);
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -516,7 +642,10 @@ pub fn SendList(
             eot_mode.as_eot(),
         );
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     log::debug!(
         "SendList({:?}, {:?}, {:?}) -> {:?}",
         board,
@@ -527,7 +656,10 @@ pub fn SendList(
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -541,11 +673,17 @@ pub fn SendLLO(board: c_int) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::SendLLO(board);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -564,11 +702,17 @@ pub fn SetRWLS(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibError>
     unsafe {
         linux_gpib_sys::SetRWLS(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -585,11 +729,17 @@ pub fn TestSRQ(board: c_int) -> Result<bool, GpibError> {
     unsafe {
         linux_gpib_sys::TestSRQ(board, &mut result);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         match result {
@@ -614,11 +764,17 @@ pub fn TestSys(board: c_int, addresses: &Vec<Addr4882>) -> Result<Vec<c_short>, 
     unsafe {
         linux_gpib_sys::TestSys(board, instruments.as_ptr(), results.as_mut_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(results)
@@ -632,11 +788,17 @@ pub fn Trigger(board: c_int, address: Addr4882) -> Result<(), GpibError> {
     unsafe {
         linux_gpib_sys::Trigger(board, address.addr);
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -655,11 +817,17 @@ pub fn TriggerList(board: c_int, addresses: &Vec<Addr4882>) -> Result<(), GpibEr
     unsafe {
         linux_gpib_sys::TriggerList(board, instruments.as_ptr());
     }
+    #[cfg(feature = "linuxgpib")]
     let status = IbStatus::current_thread_local_status();
+    #[cfg(feature = "nigpib")]
+    let status = unsafe { IbStatus::current_global_status() };
     if status.err {
         Err(GpibError::DriverError(
             status,
+            #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
+            #[cfg(feature = "nigpib")]
+            unsafe { IbError::current_global_error() }?,
         ))
     } else {
         Ok(())
@@ -676,11 +844,17 @@ pub async fn WaitSRQ(board: c_int) -> Result<c_short, GpibError> {
         unsafe {
             linux_gpib_sys::WaitSRQ(board, &mut result);
         }
+        #[cfg(feature = "linuxgpib")]
         let status = IbStatus::current_thread_local_status();
+        #[cfg(feature = "nigpib")]
+        let status = unsafe { IbStatus::current_global_status() };
         if status.err {
             Err(GpibError::DriverError(
                 status,
+                #[cfg(feature = "linuxgpib")]
                 IbError::current_thread_local_error()?,
+                #[cfg(feature = "nigpib")]
+                unsafe { IbError::current_global_error() }?,
             ))
         } else {
             Ok(result)

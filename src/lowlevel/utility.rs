@@ -5,55 +5,79 @@ use crate::types::{PrimaryAddress, SecondaryAddress};
 use linux_gpib_sys::{Addr4882_t, NOADDR};
 use std::default::Default;
 use std::fmt;
-use std::os::raw::{c_int, c_long};
+use std::os::raw::{c_int, c_uint, c_long};
 
 /// pack primary and secondary address into an Addr4882_t value
 pub fn MakeAddr(pad: u16, sad: u16) -> Addr4882_t {
-    let first_part: Addr4882_t = pad & 0xff;
+    let first_part: u16 = pad & 0xff;
     let second_part: u16 = (sad << 8) & 0xff00;
-    first_part | second_part
+
+    #[cfg(feature = "linuxgpib")]
+    let res = first_part | second_part;
+    #[cfg(feature = "nigpib")]
+    let res = (first_part | second_part).try_into().unwrap();
+
+    res
 }
 
 /// extract primary address from an Addr4882_t value
 pub fn GetPAD(address: Addr4882_t) -> u16 {
+    #[cfg(feature = "nigpib")]
+    let address: u16 = address.try_into().unwrap();
+
     address & 0xff
 }
 
 /// extract secondary address from an Addr4882_t value
 pub fn GetSAD(address: Addr4882_t) -> u16 {
+    #[cfg(feature = "nigpib")]
+    let address: u16 = address.try_into().unwrap();
+
     (address >> 8) & 0xff
 }
 
+#[cfg(feature = "linuxgpib")]
 /// ibcnt value for the last asynchronous I/O operation resynchronized to the current thread is returned.
 pub fn AsyncIbcnt() -> c_int {
     unsafe { linux_gpib_sys::AsyncIbcnt() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// ibcntl value for the last asynchronous I/O operation resynchronized to the current thread is returned.
 pub fn AsyncIbcntl() -> c_long {
     unsafe { linux_gpib_sys::AsyncIbcntl() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// thread-specific ibcnt value
 pub fn ThreadIbcnt() -> c_int {
     unsafe { linux_gpib_sys::ThreadIbcnt() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// thread-specific ibcntl value
 pub fn ThreadIbcntl() -> c_long {
     unsafe { linux_gpib_sys::ThreadIbcntl() }
 }
 
+#[cfg(feature = "nigpib")]
+pub fn Ibcnt() -> c_uint {
+    unsafe { linux_gpib_sys::Ibcnt() }
+}
+
+#[cfg(feature = "linuxgpib")]
 /// thread-specific iberr value
 pub fn ThreadIberr() -> c_int {
     unsafe { linux_gpib_sys::ThreadIberr() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// thread-specific ibsta value
 pub fn ThreadIbsta() -> c_int {
     unsafe { linux_gpib_sys::ThreadIbsta() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// iberr value for last asynchronous I/O operation
 ///
 /// AsyncIberr() returns a thread-local error number related to the global variable iberr. Its value corresponds to the result of the last asynchronous I/O operation resynchronized to the current thread by an ibwait or ibstop call. This function only reflects the result of the asynchronous I/O operation itself and not, for example, the ibwait which resynchronized the asynchronous result to the current thread. Thus the result from AsyncIberr() is easier to interpret than ThreadIberr(), since it is unambiguous whether the value is associated with the asynchronous I/O result, or with the function call used to resynchronize (ibwait or ibstop).
@@ -63,6 +87,7 @@ pub fn AsyncIberr() -> c_int {
     unsafe { linux_gpib_sys::AsyncIberr() }
 }
 
+#[cfg(feature = "linuxgpib")]
 /// ibsta value for last asynchronous I/O operation
 ///
 /// AsyncIbsta() returns a thread-local status value related to the global variable ibsta. Its value corresponds to the result of the last asynchronous I/O operation resynchronized to the current thread by an ibwait or ibstop call. This function only reflects the result of the asynchronous I/O operation itself and not, for example, the ibwait which resynchronized the asynchronous result to the current thread. Thus the result from AsyncIbsta() is easier to interpret than ThreadIbsta(), since it is unambiguous whether the value is associated with the asynchronous I/O result, or with the function call used to resynchronize (ibwait or ibstop).

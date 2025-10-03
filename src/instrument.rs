@@ -268,7 +268,10 @@ impl InstrumentHandle {
             if status.err {
                 return Err(GpibError::DriverError(
                     status,
+                    #[cfg(feature = "linuxgpib")]
                     IbError::current_thread_local_error()?,
+                    #[cfg(feature = "nigpib")]
+                    unsafe { IbError::current_global_error() }?,
                 ));
             } else if status.timo {
                 return Err(GpibError::Timeout);
@@ -312,7 +315,10 @@ impl InstrumentHandle {
         if status.err {
             Err(GpibError::DriverError(
                 status,
+                #[cfg(feature = "linuxgpib")]
                 IbError::current_thread_local_error()?,
+                #[cfg(feature = "nigpib")]
+                unsafe { IbError::current_global_error() }?,
             ))
         } else if status.timo {
             Err(GpibError::Timeout)

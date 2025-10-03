@@ -1,4 +1,6 @@
+#[cfg(feature = "linuxgpib")]
 use crate::lowlevel::utility::{AsyncIberr, ThreadIberr};
+
 use crate::status::IbStatus;
 use std::convert::Infallible;
 use std::error::Error;
@@ -233,9 +235,12 @@ impl fmt::Debug for IbError {
 
 impl IbError {
     /// Create IbError from iberr value
-    pub fn from_iberr(iberr: i32) -> Result<IbError, GpibError> {
+    pub fn from_iberr(iberr: linux_gpib_sys::iberr_type) -> Result<IbError, GpibError> {
         match iberr {
+            #[cfg(feature = "linuxgpib")]
             0 => Ok(IbError::EDVR(unsafe { linux_gpib_sys::ibcntl })),
+            #[cfg(feature = "nigpib")]
+            0 => Ok(IbError::EDVR(unsafe { linux_gpib_sys::Ibcnt().into() })),
             1 => Ok(IbError::ECIC),
             2 => Ok(IbError::ENOL),
             3 => Ok(IbError::EADR),
@@ -246,7 +251,10 @@ impl IbError {
             8 => Ok(IbError::EDMA),
             10 => Ok(IbError::EOIP),
             11 => Ok(IbError::ECAP),
+            #[cfg(feature = "linuxgpib")]
             12 => Ok(IbError::EFSO(unsafe { linux_gpib_sys::ibcntl })),
+            #[cfg(feature = "nigpib")]
+            12 => Ok(IbError::EFSO(unsafe { linux_gpib_sys::Ibcnt().into() })),
             14 => Ok(IbError::EBUS),
             15 => Ok(IbError::ESTB),
             16 => Ok(IbError::ESRQ),
@@ -262,7 +270,10 @@ impl IbError {
     pub unsafe fn current_global_error() -> Result<IbError, GpibError> {
         let status = unsafe { IbStatus::current_global_status() };
         if status.err {
-            IbError::from_iberr(unsafe { linux_gpib_sys::iberr })
+            #[cfg(feature = "linuxgpib")]
+            return IbError::from_iberr(unsafe { linux_gpib_sys::iberr });
+            #[cfg(feature = "nigpib")]
+            return IbError::from_iberr(linux_gpib_sys::Iberr());
         } else {
             Err(GpibError::ValueError(format!(
                 "Unable to get error because is not ERR (status = {:?})",
@@ -271,6 +282,7 @@ impl IbError {
         }
     }
 
+    #[cfg(feature = "linuxgpib")]
     /// Create IbError from current thread-local iberr value
     pub fn current_thread_local_error() -> Result<IbError, GpibError> {
         let status = IbStatus::current_thread_local_status();
@@ -284,6 +296,7 @@ impl IbError {
         }
     }
 
+    #[cfg(feature = "linuxgpib")]
     /// Create IbError for last asynchronous I/O operation
     pub fn current_async_local_error() -> Result<IbError, GpibError> {
         let status = IbStatus::current_async_local_status();

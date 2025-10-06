@@ -1,8 +1,8 @@
 use crate::error::{GpibError, IbError};
-#[cfg(feature = "linuxgpib")]
-use crate::lowlevel::utility::{ThreadIbcnt, AsyncIbcntl};
 #[cfg(feature = "nigpib")]
 use crate::lowlevel::utility::Ibcnt;
+#[cfg(feature = "linuxgpib")]
+use crate::lowlevel::utility::{AsyncIbcntl, ThreadIbcnt, ThreadIbcntl};
 use crate::status::IbStatus;
 use crate::types::{
     IbEosMode, IbEvent, IbLineStatus, IbOnline, IbOption, IbSendEOI, IbTimeout, PrimaryAddress,
@@ -244,7 +244,9 @@ pub fn ibfind(name: &str) -> Result<c_int, GpibError> {
             #[cfg(feature = "linuxgpib")]
             IbStatus::current_thread_local_status(),
             #[cfg(feature = "nigpib")]
-            unsafe { IbStatus::current_global_status() },
+            unsafe {
+                IbStatus::current_global_status()
+            },
             #[cfg(feature = "linuxgpib")]
             IbError::current_thread_local_error()?,
             #[cfg(feature = "nigpib")]
@@ -749,15 +751,13 @@ pub async fn ibwait(ud: c_int, status_mask: IbStatus) -> Result<(IbStatus, usize
                 unsafe { IbError::current_global_error() }?,
             ))
         } else {
-            Ok(
-                (
-                    status,
-                    #[cfg(feature = "linuxgpib")]
-                    AsyncIbcntl().try_into()?,
-                    #[cfg(feature = "nigpib")]
-                    Ibcnt().try_into()?,
-                )
-            )
+            Ok((
+                status,
+                #[cfg(feature = "linuxgpib")]
+                AsyncIbcntl().try_into()?,
+                #[cfg(feature = "nigpib")]
+                Ibcnt().try_into()?,
+            ))
         }
     })
     .await?;

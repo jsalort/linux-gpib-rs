@@ -19,7 +19,7 @@ linuxgpib = ["linux-gpib-sys/linuxgpib"]
 nigpib = ["linux-gpib-sys/nigpib"]
 
 [dependencies]
-linux-gpib-sys = { path = "../linux-gpib-sys", version = "0.1.4", default-features = false }
+linux-gpib-sys = { version = "0.1.4", default-features = false }
 tokio = { version = "1", features = ["full"], optional = true }
 log = "0.4"
 env_logger = "0.11"

@@ -54,6 +54,11 @@ pub fn ibbna(ud: c_int, name: &str) -> Result<(), GpibError> {
 }
 
 /// ibcac -- assert ATN (board)
+///
+/// ibcac() causes the board specified by the board descriptor ud to become active controller by asserting the ATN line. The board must be controller-in-change in order to assert ATN. If synchronous is nonzero, then the board will wait for a data byte on the bus to complete its transfer before asserting ATN. If the synchronous attempt times out, or synchronous is zero, then ATN will be asserted immediately.
+///
+/// It is generally not necessary to call ibcac(). It is provided for advanced users who want direct, low-level access to the GPIB bus.
+///
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibcac.html)
 pub fn ibcac(ud: c_int, synchronous: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibcac(ud, synchronous) });
@@ -394,6 +399,9 @@ pub fn ibpad(ud: c_int, primary_address: PrimaryAddress) -> Result<(), GpibError
 }
 
 /// ibpct -- pass control (board)
+///
+/// ibpct() passes control to the device specified by the device descriptor ud. The device becomes the new controller-in-charge.
+///
 /// See: [Linux GPIB Reference](https://linux-gpib.sourceforge.io/doc_html/reference-function-ibpct.html)
 pub fn ibpct(ud: c_int) -> Result<(), GpibError> {
     let status = IbStatus::from_ibsta(unsafe { linux_gpib_sys::ibpct(ud) });

@@ -41,6 +41,22 @@ pub enum GpibError {
 
 impl Error for GpibError {}
 
+/// EDVR values can be troubleshooted using the ibcntl value.
+/// For NI: https://documentation.help/NI-488.2/trou4xyt.html
+pub fn edvr_description(val: i64) -> String {
+    match val {
+        0xE014002C | -535560148 => "ibcntl = 0xE014002C: a call is made with a board number that is within the range of allowed board numbers, but which has not been assigned to a GPIB interface".to_owned(),
+        0xE0140025 | -535560155 => "ibcntl = 0xE0140025: a call is made with a board number that is not within the range of allowed board numbers".to_owned(),
+        0xE0140035 | -535560139 => "ibcntl = 0XE0140035: a call is made with a device name that is not listed in the logical device templates".to_owned(),
+        0xE1080080 | -519569280 | 0xE1080081 | -519569279 => format!("ibcntl = {:x}: you are using a removable interface (for example, a GPIB-USB-HS) and you removed or ejected the interface while the software is trying to communicate with it", val),
+        0xE00A0047 | -536215481 => "ibcntl = 0xE00A0047: the driver encounters an access violation when attempting to access an object supplied by the user. This can happen if the user's buffer does not have appropriate read/write characteristics. For example, this error is returned if a required pointer passed to a call is NULL.".to_owned(),
+        0xE1030043 | -519897021 => "ibcntl = 0xE1030043: you have enabled DOS NI-488.2 support and attempted to run an existing DOS NI-488.2 application that was compiled with an older, unsupported DOS application interface".to_owned(),
+        0xE1060075 | -519700363 => "ibcntl = 0xE1060075: the driver is unable to communicate with a GPIB-ENET/100 during an ibfind or ibdev".to_owned(),
+        0xE1060078 | -519700360 => "ibcntl = 0xE1060078: you are using a GPIB-ENET/100 and the network link is broken between the host and the GPIB-ENET/100 interface".to_owned(),
+        other => format!("unknown ibcntl value {:x}", other),
+    }
+}
+
 impl fmt::Display for GpibError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
@@ -85,7 +101,7 @@ impl fmt::Display for IbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             IbError::EDVR(ibcntl) => {
-                write!(f, "EDVR  (ibcntl = {ibcntl})")
+                write!(f, "EDVR  ({})", edvr_description(*ibcntl))
             }
             IbError::ECIC => {
                 write!(f, "ECIC")
@@ -140,7 +156,11 @@ impl fmt::Debug for IbError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             IbError::EDVR(ibcntl) => {
-                write!(f, "EDVR  (A system call has failed. ibcntl = {ibcntl})")
+                write!(
+                    f,
+                    "EDVR  (A system call has failed. {})",
+                    edvr_description(*ibcntl)
+                )
             }
             IbError::ECIC => {
                 write!(

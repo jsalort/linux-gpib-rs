@@ -1,8 +1,8 @@
 use crate::error::{GpibError, IbError};
 use crate::lowlevel::multidevice;
-use crate::lowlevel::traditional::{
-    ibclr, ibdev, ibonl, ibrd, ibrda, ibtmo, ibwait, ibwrt, ibwrta,
-};
+#[cfg(feature = "async-tokio")]
+use crate::lowlevel::traditional::ibwait;
+use crate::lowlevel::traditional::{ibclr, ibdev, ibonl, ibrd, ibrda, ibtmo, ibwrt, ibwrta};
 use crate::lowlevel::utility::Addr4882;
 use crate::status::IbStatus;
 use crate::types::{IbEosMode, IbOnline, IbSendEOI, IbTimeout, PrimaryAddress, SecondaryAddress};

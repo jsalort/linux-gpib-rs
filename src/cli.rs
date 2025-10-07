@@ -3,6 +3,7 @@ use linux_gpib_rs::instrument::{Board, Parameters};
 use linux_gpib_rs::lowlevel::traditional::{ibdev, ibrd, ibwrt};
 use linux_gpib_rs::types::IbSendEOI;
 use linux_gpib_rs::types::{IbEosMode, IbTimeout, PrimaryAddress, SecondaryAddress};
+#[cfg(feature = "async-tokio")]
 use tokio::task::JoinSet;
 
 fn lowlevel_query() -> Result<(), GpibError> {
@@ -33,6 +34,7 @@ fn multidevice_query() -> Result<(), GpibError> {
     Ok(())
 }
 
+#[cfg(feature = "async-tokio")]
 async fn asynchronous_simple() -> Result<(), GpibError> {
     let board = Board::with_board_number(0);
     let instruments = board.find_listeners()?;
@@ -45,6 +47,7 @@ async fn asynchronous_simple() -> Result<(), GpibError> {
     Ok(())
 }
 
+#[cfg(feature = "async-tokio")]
 async fn asynchronous_bis() -> Result<(), GpibError> {
     let board = Board::with_board_number(0);
     let instruments = board.find_listeners()?;
@@ -65,6 +68,7 @@ async fn asynchronous_bis() -> Result<(), GpibError> {
     Ok(())
 }
 
+#[cfg(feature = "async-tokio")]
 #[tokio::main]
 async fn main() {
     env_logger::init();
@@ -80,4 +84,15 @@ async fn main() {
 
     println!("**** Asynchronous bis ***");
     asynchronous_bis().await.unwrap();
+}
+
+#[cfg(not(feature = "async-tokio"))]
+fn main() {
+    env_logger::init();
+
+    println!("*** lowlevel_query ***");
+    lowlevel_query().unwrap();
+
+    println!("*** Multidevice query ***");
+    multidevice_query().unwrap();
 }

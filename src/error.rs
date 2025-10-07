@@ -273,7 +273,7 @@ impl IbError {
             #[cfg(feature = "linuxgpib")]
             return IbError::from_iberr(unsafe { linux_gpib_sys::iberr });
             #[cfg(feature = "nigpib")]
-            return IbError::from_iberr(linux_gpib_sys::Iberr());
+            return IbError::from_iberr(unsafe { linux_gpib_sys::Iberr() });
         } else {
             Err(GpibError::ValueError(format!(
                 "Unable to get error because is not ERR (status = {:?})",

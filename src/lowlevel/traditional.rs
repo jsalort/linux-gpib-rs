@@ -446,6 +446,11 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<(IbStatus, usize), GpibError
         )
     });
     log::debug!("ibrd({}, count = {}) -> {:?}", ud, buffer.len(), status);
+    #[cfg(feature = "linuxgpib")]
+    let bytes_read = ThreadIbcntl();
+    #[cfg(feature = "nigpib")]
+    let bytes_read = Ibcnt();
+    log::debug!("bytes_read (ibcntl) = {bytes_read}.");
     if status.err {
         Err(GpibError::DriverError(
             status,
@@ -455,10 +460,6 @@ pub fn ibrd(ud: c_int, buffer: &mut [u8]) -> Result<(IbStatus, usize), GpibError
             unsafe { IbError::current_global_error() }?,
         ))
     } else {
-        #[cfg(feature = "linuxgpib")]
-        let bytes_read = ThreadIbcntl();
-        #[cfg(feature = "nigpib")]
-        let bytes_read = Ibcnt();
         if bytes_read > buffer.len().try_into()? {
             Err(GpibError::ValueError(format!(
                 "bytes_read ({}) > buffer.len() ({})",

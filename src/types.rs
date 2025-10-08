@@ -622,6 +622,7 @@ pub struct IbEosMode {
     pub reos: bool,
     pub xeos: bool,
     pub bin: bool,
+    pub eos_char: u8,
 }
 
 impl fmt::Display for IbEosMode {
@@ -637,6 +638,7 @@ impl fmt::Display for IbEosMode {
             description.push_str("BIN");
         }
         if description.len() > 0 {
+            description.push_str(&format!("{}", self.eos_char));
             write!(f, "EosMod({description})")
         } else {
             write!(f, "EosMod(No flag set)")
@@ -649,16 +651,17 @@ impl fmt::Debug for IbEosMode {
         let mut description = String::new();
         if self.reos {
             description.push_str(
-                "REOS (0x400) Enable termination of reads when eos character is received.",
+                "REOS (0x400) Enable termination of reads when eos character is received. ",
             );
         }
         if self.xeos {
-            description.push_str("XEOS (0x800) Assert the EOI line whenever the eos character is sent during writes.");
+            description.push_str("XEOS (0x800) Assert the EOI line whenever the eos character is sent during writes. ");
         }
         if self.bin {
-            description.push_str("BIN (0x1000) Match eos character using all 8 bits (instead of only looking at the 7 least significant bits).");
+            description.push_str("BIN (0x1000) Match eos character using all 8 bits (instead of only looking at the 7 least significant bits). ");
         }
         if description.len() > 0 {
+            description.push_str("End-of-char = {self.eos_char}");
             write!(f, "EosMod({description})")
         } else {
             write!(f, "EosMod(No flag set)")
@@ -668,7 +671,7 @@ impl fmt::Debug for IbEosMode {
 
 impl IbEosMode {
     pub fn as_mode(&self) -> c_int {
-        let mut mode = 0;
+        let mut mode: c_int = 0;
         if self.reos {
             mode = mode | 0x400;
         }
@@ -678,7 +681,7 @@ impl IbEosMode {
         if self.bin {
             mode = mode | 0x1000;
         }
-        mode
+        mode | (self.eos_char as c_int)
     }
 }
 
@@ -688,6 +691,7 @@ impl Default for IbEosMode {
             reos: true,
             xeos: false,
             bin: false,
+            eos_char: b'\n',
         }
     }
 }

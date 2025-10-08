@@ -29,6 +29,13 @@ pub enum IbError {
     ESTB,
     ESRQ,
     ETAB,
+    ELCK,
+    EARM,
+    EHDL,
+    ECFG,
+    EWIP,
+    ERST,
+    EPWR,
 }
 
 pub enum GpibError {
@@ -148,6 +155,27 @@ impl fmt::Display for IbError {
             IbError::ETAB => {
                 write!(f, "ETAB")
             }
+            IbError::ELCK => {
+                write!(f, "ELCK")
+            }
+            IbError::EARM => {
+                write!(f, "EARM")
+            }
+            IbError::EHDL => {
+                write!(f, "EHDL")
+            }
+            IbError::ECFG => {
+                write!(f, "WCFG")
+            }
+            IbError::EWIP => {
+                write!(f, "EWIP")
+            }
+            IbError::ERST => {
+                write!(f, "ERST")
+            }
+            IbError::EPWR => {
+                write!(f, "EPWR")
+            }
         }
     }
 }
@@ -249,6 +277,33 @@ impl fmt::Debug for IbError {
                     "ETAB (this error can be returned by ibevent(), FindLstn(), or FindRQS(). See their descriptions for more information)"
                 )
             }
+            IbError::ELCK => {
+                write!(f, "ELCK (Address or board is locked)")
+            }
+            IbError::EARM => {
+                write!(f, "EARM (The ibnotify Callback failed to rearm)")
+            }
+            IbError::EHDL => {
+                write!(f, "EHDL (The input handle is invalid)",)
+            }
+            IbError::ECFG => {
+                write!(f, "WCFG (Configuration warning)",)
+            }
+            IbError::EWIP => {
+                write!(f, "EWIP (Wait already in progress on input ud)")
+            }
+            IbError::ERST => {
+                write!(
+                    f,
+                    "ERST (The event notification was cancelled due to a reset of the interface)"
+                )
+            }
+            IbError::EPWR => {
+                write!(
+                    f,
+                    "EPWR (The system or board has lost power or gone to standby)"
+                )
+            }
         }
     }
 }
@@ -279,6 +334,13 @@ impl IbError {
             15 => Ok(IbError::ESTB),
             16 => Ok(IbError::ESRQ),
             20 => Ok(IbError::ETAB),
+            21 => Ok(IbError::ELCK),
+            22 => Ok(IbError::EARM),
+            23 => Ok(IbError::EHDL),
+            24 => Ok(IbError::ECFG),
+            26 => Ok(IbError::EWIP),
+            27 => Ok(IbError::ERST),
+            28 => Ok(IbError::EPWR),
             other => Err(GpibError::ValueError(format!(
                 "Unexpected iberr value = {}.",
                 other
